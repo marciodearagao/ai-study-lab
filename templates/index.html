@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A calm, focused place to learn with AI.">
+    <title>AI Study Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Newsreader:opsz,wght@6..72,600&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#home" data-workspace-link aria-label="AI Study Lab home">
+        <span class="brand-mark" aria-hidden="true">A</span>
+        <span>AI Study Lab</span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a class="nav-link" href="#study" data-workspace-link>Study</a>
+        <a class="nav-link" href="#interview-coach" data-workspace-link>Interview Coach</a>
+        <a class="nav-link" href="#progress" data-workspace-link>Progress</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero workspace" id="study" data-workspace="study" aria-labelledby="study-title" hidden>
+        <div class="eyebrow"><span></span> Your learning desk</div>
+        <h1 id="study-title">What do you want to <em>learn today?</em></h1>
+        <p class="intro">Choose a subject and a starting point. We’ll shape a focused lesson around you.</p>
+
+        <form class="study-form" id="study-form" novalidate>
+          <label for="topic">Topic</label>
+          <div class="topic-row">
+            <input id="topic" name="topic" type="text" placeholder="e.g. How neural networks learn" autocomplete="off" maxlength="120" aria-describedby="form-message">
+            <button type="submit"><span class="button-label">Start learning</span> <span aria-hidden="true">→</span></button>
+          </div>
+
+          <fieldset>
+            <legend>Your level</legend>
+            <div class="level-options">
+              <label><input type="radio" name="level" value="Basic" checked><span>Basic</span></label>
+              <label><input type="radio" name="level" value="Intermediate"><span>Intermediate</span></label>
+              <label><input type="radio" name="level" value="Advanced"><span>Advanced</span></label>
+            </div>
+          </fieldset>
+          <p class="form-message" id="form-message" aria-live="polite"></p>
+        </form>
+
+        <section class="lesson-placeholder" id="lesson-placeholder" tabindex="-1" hidden>
+          <div class="lesson-content">
+            <span class="lesson-kicker">Lesson ready</span>
+            <h2 id="lesson-title"></h2>
+            <p id="lesson-description"></p>
+            <h3 class="key-points-heading">Key points</h3>
+            <ul class="key-points" id="key-points"></ul>
+            <div class="lesson-actions">
+              <button class="study-flashcards-button" id="study-flashcards" type="button">Study flashcards <span aria-hidden="true">→</span></button>
+              <button class="take-quiz-button" id="take-quiz" type="button">Take quiz <span aria-hidden="true">→</span></button>
+            </div>
+          </div>
+          <span class="lesson-number" aria-hidden="true">01</span>
+        </section>
+
+        <section class="flashcard-mode" id="flashcard-mode" tabindex="-1" aria-labelledby="flashcard-question" hidden>
+          <div class="flashcard-header">
+            <span class="lesson-kicker" id="card-counter" aria-live="polite">Card 1 / 5</span>
+            <button class="text-button" id="back-to-lesson" type="button">Back to lesson</button>
+          </div>
+          <div class="flashcard-face">
+            <h2 id="flashcard-question"></h2>
+            <div class="flashcard-answer" id="flashcard-answer" hidden>
+              <span>Answer</span>
+              <p></p>
+            </div>
+            <button class="reveal-button" id="reveal-answer" type="button">Reveal answer</button>
+          </div>
+          <div class="flashcard-controls">
+            <button id="previous-card" type="button">← Previous</button>
+            <button id="next-card" type="button">Next →</button>
+          </div>
+        </section>
+
+        <section class="quiz-mode" id="quiz-mode" tabindex="-1" aria-labelledby="quiz-question" hidden>
+          <div class="quiz-header">
+            <span class="lesson-kicker" id="quiz-counter" aria-live="polite">Question 1 / 4</span>
+            <button class="text-button back-from-quiz" type="button">Back to lesson</button>
+          </div>
+          <div id="quiz-question-view">
+            <div class="quiz-question">
+              <h2 id="quiz-question"></h2>
+              <div class="quiz-options" id="quiz-options" aria-label="Answer options"></div>
+              <div class="quiz-feedback" id="quiz-feedback" aria-live="polite" hidden>
+                <strong id="quiz-feedback-label"></strong>
+                <p id="quiz-explanation"></p>
+              </div>
+            </div>
+            <div class="quiz-controls">
+              <button id="next-question" type="button" hidden>Next question →</button>
+            </div>
+          </div>
+          <div class="quiz-completion" id="quiz-completion" hidden>
+            <span class="lesson-kicker">Quiz complete</span>
+            <h2 id="quiz-score"></h2>
+            <p>Review the lesson whenever you’re ready.</p>
+            <button class="back-from-quiz" type="button">Back to lesson</button>
+          </div>
+        </section>
+      </section>
+
+      <section class="coach workspace" id="interview-coach" data-workspace="interview-coach" aria-labelledby="coach-title" hidden>
+        <div class="section-heading">
+          <div>
+            <span class="section-number">02</span>
+            <h2 id="coach-title">Interview Coach</h2>
+          </div>
+          <p>Compare your experience with the role.</p>
+        </div>
+
+        <form class="coach-form" id="interview-form" novalidate>
+          <div class="coach-input-grid">
+            <div class="coach-field">
+              <label class="field-label" for="job-description">Job Description</label>
+              <textarea id="job-description" name="job_description" rows="9" maxlength="15000" placeholder="Paste the job description here..." aria-describedby="interview-message"></textarea>
+            </div>
+            <div class="coach-field">
+              <span class="field-label">Resume / CV</span>
+              <div class="pdf-upload-row">
+                <input class="file-input" id="resume-pdf" name="resume_pdf" type="file" accept=".pdf,application/pdf">
+                <label class="pdf-upload-button" for="resume-pdf">Choose PDF</label>
+                <span class="pdf-file-name" id="pdf-file-name">No PDF selected</span>
+              </div>
+              <label class="manual-input-label" for="resume-text">Or paste Resume / CV text</label>
+              <textarea id="resume-text" name="resume_text" rows="5" maxlength="15000" placeholder="Paste your resume text here..." aria-describedby="interview-message"></textarea>
+            </div>
+          </div>
+          <div class="supplemental-upload">
+            <div>
+              <span class="field-label">LinkedIn Profile <small>Optional</small></span>
+              <p>Use an exported profile PDF as supporting context.</p>
+            </div>
+            <div class="pdf-upload-row">
+              <input class="file-input" id="linkedin-pdf" name="linkedin_pdf" type="file" accept=".pdf,application/pdf">
+              <label class="pdf-upload-button" for="linkedin-pdf">Choose PDF</label>
+              <span class="pdf-file-name" id="linkedin-file-name">No LinkedIn PDF selected</span>
+            </div>
+          </div>
+          <div class="supplemental-upload">
+            <div>
+              <span class="field-label">Cover Letter <small>Optional</small></span>
+              <p>Add supplementary context for this application.</p>
+            </div>
+            <div class="pdf-upload-row">
+              <input class="file-input" id="cover-letter-pdf" name="cover_letter_pdf" type="file" accept=".pdf,application/pdf">
+              <label class="pdf-upload-button" for="cover-letter-pdf">Choose PDF</label>
+              <span class="pdf-file-name" id="cover-letter-file-name">No Cover Letter PDF selected</span>
+            </div>
+          </div>
+          <div class="coach-submit-row">
+            <p class="form-message" id="interview-message" aria-live="polite"></p>
+            <button type="submit"><span class="coach-button-label">Analyze</span> <span aria-hidden="true">→</span></button>
+          </div>
+        </form>
+
+        <section class="analysis-results" id="analysis-results" tabindex="-1" hidden>
+          <div class="fit-summary">
+            <span class="lesson-kicker">Overall fit</span>
+            <h3 id="fit-level"></h3>
+            <p id="fit-summary"></p>
+          </div>
+          <div class="analysis-grid">
+            <article><h3>Evidence found in CV</h3><ul id="analysis-evidence"></ul></article>
+            <article><h3>Gaps</h3><ul id="analysis-gaps"></ul></article>
+            <article><h3>Suggested study topics</h3><ul id="analysis-topics"></ul></article>
+            <article><h3>Interview questions</h3><ol id="analysis-questions"></ol></article>
+          </div>
+        </section>
+      </section>
+
+      <section class="progress-workspace workspace" id="progress" data-workspace="progress" aria-labelledby="progress-title" hidden>
+        <div class="coming-later-panel">
+          <span class="lesson-kicker">Coming later</span>
+          <h1 id="progress-title">Progress</h1>
+          <p>Learning history and progress insights will live here.</p>
+        </div>
+      </section>
+
+      <section class="explore workspace workspace-home" id="home" data-workspace="home" aria-labelledby="explore-title">
+        <div class="section-heading">
+          <div>
+            <span class="section-number">01</span>
+            <h2 id="explore-title">Explore</h2>
+          </div>
+          <p>Study with AI or prepare for your next role.</p>
+        </div>
+
+        <div class="explore-grid">
+          <a class="explore-card study-card" href="#study" data-workspace-link>
+            <span class="card-icon book-icon" aria-hidden="true"></span>
+            <div><h3>Study</h3><p>Build understanding, one focused topic at a time.</p></div>
+            <span class="status available">Available</span>
+          </a>
+          <a class="explore-card coach-card" href="#interview-coach" data-workspace-link>
+            <span class="card-icon dialogue-icon" aria-hidden="true"></span>
+            <div><h3>Interview Coach</h3><p>Practice explaining what you know.</p></div>
+            <span class="status available-light">Available</span>
+          </a>
+          <a class="explore-card muted-card" href="#progress" data-workspace-link>
+            <span class="card-icon chart-icon" aria-hidden="true"></span>
+            <div><h3>Progress</h3><p>See how your knowledge grows.</p></div>
+            <span class="status">Coming later</span>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer><span>AI Study Lab</span><span>Learn with intention.</span></footer>
+  </body>
+</html>
