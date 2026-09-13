@@ -88,3 +88,30 @@ def test_health_reports_version() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok", "version": "0.1.0"}
+
+
+def test_cross_origin_write_is_rejected() -> None:
+    response = client.post(
+        "/api/interview-analysis/pdf",
+        headers={"Origin": "https://untrusted.example"},
+        data={"job_description": "Role", "resume_text": "Experience"},
+    )
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Cross-origin requests are not allowed."}
+
+
+def test_local_origin_write_reaches_endpoint_validation() -> None:
+    response = client.post(
+        "/api/lessons",
+        headers={"Origin": "http://127.0.0.1:8000"},
+        json={},
+    )
+
+    assert response.status_code == 422
+
+
+def test_untrusted_host_is_rejected() -> None:
+    response = client.get("/", headers={"Host": "untrusted.example"})
+
+    assert response.status_code == 400

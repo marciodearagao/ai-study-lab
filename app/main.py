@@ -1,11 +1,13 @@
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
 from typing import Annotated
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.ai import AIGenerationError
 from app.interview import (
@@ -22,8 +24,38 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 app = FastAPI(title="AI Study Lab", version="0.1.0")
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["127.0.0.1", "localhost", "testserver"],
+)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 MAX_PDF_BYTES = 5 * 1024 * 1024
+
+
+def is_local_browser_origin(origin: str) -> bool:
+    try:
+        parsed = urlsplit(origin)
+        return parsed.scheme in {"http", "https"} and parsed.hostname in {
+            "127.0.0.1",
+            "localhost",
+        }
+    except ValueError:
+        return False
+
+
+@app.middleware("http")
+async def reject_cross_origin_writes(request: Request, call_next):
+    origin = request.headers.get("origin")
+    if (
+        request.method not in {"GET", "HEAD", "OPTIONS"}
+        and origin
+        and not is_local_browser_origin(origin)
+    ):
+        return JSONResponse(
+            status_code=403,
+            content={"detail": "Cross-origin requests are not allowed."},
+        )
+    return await call_next(request)
 
 
 async def extract_uploaded_pdf(upload: UploadFile, document_name: str) -> str:
