@@ -154,7 +154,7 @@ The current structured-generation behavior is documented in [PROMPTS.md](PROMPTS
 
 ## Privacy and document handling
 
-- Uploaded PDFs are processed in memory for the current request and are not persisted.
+- The application reads uploaded PDFs into memory for the current request and does not persist them. The web framework may use short-lived operating-system temporary buffering while receiving an upload.
 - Extracted document text is not stored by this application.
 - Job descriptions, resume/CV content, and optional supporting-document text are sent to the configured AI provider to generate the analysis.
 - API keys belong only in the local `.env` file; never commit `.env`, keys, personal documents, or real candidate data.
