@@ -6,6 +6,9 @@ __pycache__/
 .ruff_cache/
 .venv/
 .env
+.env.*
+!.env.example
+.audit-cache/
 .coverage
 .coverage.*
 coverage.xml
