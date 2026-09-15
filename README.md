@@ -171,6 +171,9 @@ Tests cover lesson activities, Interview Coach, provider failures and fallback, 
 The repository includes an evaluation harness for deterministic checks, live candidate generation, RAG retrieval and grounding, structured LLM-as-a-judge assessment, provider/fallback telemetry, and a combined HTML report. It is separate from the product UI; see [evals/README.md](evals/README.md) for artifacts and details.
 
 ```bash
+python -m evals.run_all
+
+# Or run each step individually:
 python -m evals.run
 python -m evals.run_live
 python -m evals.run_rag
@@ -178,7 +181,7 @@ python -m evals.run_judge
 python -m evals.report
 ```
 
-Live and judge commands use configured providers; automated tests mock provider calls.
+`run_all` executes the five individual steps in order and stops on the first failure. Live and judge commands use configured providers; automated tests mock provider calls.
 
 ## Request telemetry
 

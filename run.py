@@ -60,6 +60,7 @@ def start_browser_opening() -> None:
 def main() -> int:
     print(f"{APP_NAME} {VERSION}")
     print("Starting local application...\n")
+    print("Evaluation suite: python -m evals.run_all\n")
 
     try:
         import uvicorn
