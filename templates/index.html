@@ -45,6 +45,16 @@
               <label><input type="radio" name="level" value="Advanced"><span>Advanced</span></label>
             </div>
           </fieldset>
+          <div class="study-material-upload">
+            <div>
+              <span class="field-label">Study material <small>Optional</small></span>
+              <span class="pdf-file-name" id="study-pdf-file-name">No PDF selected</span>
+            </div>
+            <div class="pdf-upload-row">
+              <input class="file-input" id="study-pdf" name="study_pdf" type="file" accept=".pdf,application/pdf">
+              <label class="pdf-upload-button" for="study-pdf">Choose PDF</label>
+            </div>
+          </div>
           <p class="form-message" id="form-message" aria-live="polite"></p>
         </form>
 
@@ -53,8 +63,13 @@
             <span class="lesson-kicker">Lesson ready</span>
             <h2 id="lesson-title"></h2>
             <p id="lesson-description"></p>
+            <p class="grounded-indicator" id="grounded-indicator" hidden>Based on your uploaded material</p>
             <h3 class="key-points-heading">Key points</h3>
             <ul class="key-points" id="key-points"></ul>
+            <div class="lesson-sources" id="lesson-sources" hidden>
+              <h3>Sources</h3>
+              <ul id="source-references"></ul>
+            </div>
             <div class="lesson-actions">
               <button class="study-flashcards-button" id="study-flashcards" type="button">Study flashcards <span aria-hidden="true">→</span></button>
               <button class="take-quiz-button" id="take-quiz" type="button">Take quiz <span aria-hidden="true">→</span></button>

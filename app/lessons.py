@@ -27,9 +27,12 @@ class QuizQuestion(BaseModel):
 
     question: Annotated[ShortText, StringConstraints(max_length=240)]
     options: list[Annotated[ShortText, StringConstraints(max_length=160)]] = Field(
-        min_length=4, max_length=4
+        min_length=4,
+        max_length=4,
     )
-    correct_answer: Annotated[ShortText, StringConstraints(max_length=160)]
+    correct_answer: Annotated[ShortText, StringConstraints(max_length=160)] = Field(
+        description="Copy one complete option exactly, character for character."
+    )
     explanation: Annotated[ShortText, StringConstraints(max_length=300)]
 
     @model_validator(mode="after")
@@ -49,8 +52,8 @@ class Lesson(BaseModel):
     key_concepts: list[Annotated[ShortText, StringConstraints(max_length=120)]] = Field(
         min_length=3, max_length=4
     )
-    flashcards: list[Flashcard] = Field(min_length=5, max_length=8)
-    quiz_questions: list[QuizQuestion] = Field(min_length=4, max_length=6)
+    flashcards: list[Flashcard] = Field(min_length=5, max_length=5)
+    quiz_questions: list[QuizQuestion] = Field(min_length=4, max_length=4)
 
 
 SYSTEM_PROMPT = """You are a clear, practical teacher creating a concise lesson.
@@ -59,10 +62,20 @@ prefer their established meaning in that subject. For technical topics, preserve
 meaning remains uncertain instead of inventing or confidently choosing an unrelated expansion.
 In an AI or machine-learning topic, RAG normally means Retrieval-Augmented Generation unless the
 topic clearly indicates otherwise. Return only the requested lesson structure. Write one short
-explanation, then 3 to 4 brief key points that add distinct takeaways without repeating the
-explanation. Include 5 to 8 concise flashcards and 4 to 6 multiple-choice quiz questions focused on
-the requested topic and learner level. Each quiz question must have exactly four distinct options,
-an exact matching correct answer, and a short explanation."""
+explanation, then 3 to 4 brief key points that add distinct takeaways without repetition.
+Activity rules:
+- Generate exactly 5 concise flashcards.
+- Generate exactly 4 multiple-choice quiz questions.
+- Give every quiz question exactly 4 distinct, non-near-duplicate option strings; never repeat an option.
+- Copy one complete option exactly, character for character, into correct_answer.
+- Keep every quiz explanation short.
+Adhere exactly to the structured schema. Before returning, verify all counts, distinct options, and
+exact answer matches."""
+
+LESSON_RETRY_PROMPT = """Regenerate the entire lesson because the previous candidate did not satisfy
+the structured schema. Return exactly 5 flashcards and exactly 4 quiz questions. Every quiz question
+must contain exactly 4 distinct option strings with no repeated option, and correct_answer must copy
+one option exactly. Return only the complete structured lesson."""
 
 
 def build_lesson_messages(request: LessonRequest) -> list[dict[str, str]]:
@@ -79,10 +92,23 @@ def build_lesson_messages(request: LessonRequest) -> list[dict[str, str]]:
     ]
 
 
+async def generate_lesson_from_messages(messages: list[dict[str, str]]) -> Lesson:
+    return await generate_structured(
+        messages=messages,
+        response_model=Lesson,
+        schema_name="lesson",
+        output_label="lesson",
+        allow_gemini_fallback=True,
+    )
+
+
 async def generate_lesson(request: LessonRequest) -> Lesson:
     return await generate_structured(
         messages=build_lesson_messages(request),
         response_model=Lesson,
         schema_name="lesson",
         output_label="lesson",
+        retry_structured_output=True,
+        structured_retry_message=LESSON_RETRY_PROMPT,
+        allow_gemini_fallback=True,
     )
