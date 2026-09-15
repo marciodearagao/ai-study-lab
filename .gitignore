@@ -20,6 +20,8 @@ dist/
 temp/
 tmp/
 uploads/
+/evals/report.html
+/evals/results/
 *.pdf
 *.doc
 *.docx

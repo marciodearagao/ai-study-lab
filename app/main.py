@@ -1,12 +1,13 @@
 from pathlib import Path
+from typing import Annotated, Literal
 from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
-from typing import Annotated
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.ai import AIGenerationError
@@ -18,6 +19,20 @@ from app.interview import (
     generate_interview_analysis,
 )
 from app.lessons import Lesson, LessonRequest, generate_lesson
+from app.rag import (
+    GroundedLesson,
+    RetrievalError,
+    generate_grounded_lesson,
+    process_pdf,
+    retrieve_chunks,
+)
+from app.telemetry import (
+    emit_request_telemetry,
+    record_error_category,
+    record_retrieval,
+    start_request,
+    telemetry_scope,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -30,6 +45,12 @@ app.add_middleware(
 )
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 MAX_PDF_BYTES = 5 * 1024 * 1024
+TELEMETRY_ENDPOINTS = {
+    "/api/lessons",
+    "/api/lessons/pdf",
+    "/api/interview-analysis",
+    "/api/interview-analysis/pdf",
+}
 
 
 def is_local_browser_origin(origin: str) -> bool:
@@ -58,7 +79,36 @@ async def reject_cross_origin_writes(request: Request, call_next):
     return await call_next(request)
 
 
-async def extract_uploaded_pdf(upload: UploadFile, document_name: str) -> str:
+@app.middleware("http")
+async def log_generation_telemetry(request: Request, call_next):
+    if request.method != "POST" or request.url.path not in TELEMETRY_ENDPOINTS:
+        return await call_next(request)
+
+    request_id, started_at = start_request()
+    with telemetry_scope() as state:
+        try:
+            response = await call_next(request)
+        except Exception:
+            record_error_category("unhandled_error")
+            emit_request_telemetry(
+                state=state,
+                endpoint=request.url.path,
+                started_at=started_at,
+                status_code=500,
+                request_id=request_id,
+            )
+            raise
+        emit_request_telemetry(
+            state=state,
+            endpoint=request.url.path,
+            started_at=started_at,
+            status_code=response.status_code,
+            request_id=request_id,
+        )
+        return response
+
+
+async def read_uploaded_pdf(upload: UploadFile, document_name: str) -> bytes:
     if (
         upload.content_type != "application/pdf"
         or not (upload.filename or "").lower().endswith(".pdf")
@@ -71,7 +121,11 @@ async def extract_uploaded_pdf(upload: UploadFile, document_name: str) -> str:
             status_code=400,
             detail=f"The {document_name} PDF is too large. Choose a file under 5 MB.",
         )
-    return extract_pdf_text(pdf_data, document_name)
+    return pdf_data
+
+
+async def extract_uploaded_pdf(upload: UploadFile, document_name: str) -> str:
+    return extract_pdf_text(await read_uploaded_pdf(upload, document_name), document_name)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -89,6 +143,37 @@ async def create_lesson(payload: LessonRequest) -> Lesson:
     try:
         return await generate_lesson(payload)
     except AIGenerationError as error:
+        record_error_category(error.category)
+        raise HTTPException(status_code=error.status_code, detail=str(error)) from error
+
+
+@app.post("/api/lessons/pdf", response_model=GroundedLesson)
+async def create_grounded_lesson(
+    topic: Annotated[str, Form(max_length=120)],
+    level: Annotated[Literal["Basic", "Intermediate", "Advanced"], Form()],
+    study_pdf: Annotated[list[UploadFile] | None, File()] = None,
+) -> GroundedLesson:
+    if not topic.strip():
+        raise HTTPException(status_code=422, detail="Add a topic to begin.")
+    if not study_pdf or len(study_pdf) != 1:
+        raise HTTPException(status_code=400, detail="Choose exactly one PDF study material file.")
+
+    try:
+        pdf_data = await read_uploaded_pdf(study_pdf[0], "study material")
+        chunks = await run_in_threadpool(process_pdf, pdf_data)
+        retrieved_chunks = await run_in_threadpool(retrieve_chunks, chunks, topic)
+        record_retrieval(
+            [chunk.page_number for chunk in retrieved_chunks], len(retrieved_chunks)
+        )
+        return await generate_grounded_lesson(topic, level, retrieved_chunks)
+    except PDFExtractionError as error:
+        record_error_category("pdf_validation")
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except RetrievalError as error:
+        record_error_category("retrieval")
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except AIGenerationError as error:
+        record_error_category(error.category)
         raise HTTPException(status_code=error.status_code, detail=str(error)) from error
 
 
@@ -97,6 +182,7 @@ async def create_interview_analysis(payload: InterviewRequest) -> InterviewAnaly
     try:
         return await generate_interview_analysis(payload)
     except AIGenerationError as error:
+        record_error_category(error.category)
         raise HTTPException(status_code=error.status_code, detail=str(error)) from error
 
 
@@ -146,6 +232,8 @@ async def create_interview_analysis_from_pdf(
         )
         return await generate_interview_analysis(payload)
     except PDFExtractionError as error:
+        record_error_category("pdf_validation")
         raise HTTPException(status_code=400, detail=str(error)) from error
     except AIGenerationError as error:
+        record_error_category(error.category)
         raise HTTPException(status_code=error.status_code, detail=str(error)) from error

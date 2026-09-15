@@ -11,6 +11,8 @@ from app.ai import generate_structured
 RequiredText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 BriefItem = Annotated[RequiredText, StringConstraints(max_length=240)]
 MAX_DOCUMENT_TEXT = 15_000
+# This bounds documents sent directly to the LLM. Page extraction is also reused
+# by RAG, which chunks before selecting a much smaller context.
 DocumentText = Annotated[RequiredText, StringConstraints(max_length=MAX_DOCUMENT_TEXT)]
 
 
@@ -80,6 +82,7 @@ async def generate_interview_analysis(request: InterviewRequest) -> InterviewAna
         response_model=InterviewAnalysis,
         schema_name="interview_analysis",
         output_label="interview analysis",
+        allow_gemini_fallback=True,
     )
 
 
@@ -87,22 +90,34 @@ class PDFExtractionError(Exception):
     """Raised when a PDF cannot provide usable document text."""
 
 
-def extract_pdf_text(pdf_data: bytes, document_name: str) -> str:
+def extract_pdf_pages(pdf_data: bytes, document_name: str) -> list[tuple[int, str]]:
     if not pdf_data:
         raise PDFExtractionError(f"The {document_name} PDF is empty or unreadable.")
 
     try:
         reader = PdfReader(BytesIO(pdf_data))
-        text = "\n".join(page.extract_text() or "" for page in reader.pages).strip()
+        pages = [
+            (page_number, text)
+            for page_number, page in enumerate(reader.pages, start=1)
+            if (text := (page.extract_text() or "").strip())
+        ]
     except (PdfReadError, OSError, ValueError, TypeError, KeyError) as error:
         raise PDFExtractionError(f"The {document_name} PDF is empty or unreadable.") from error
 
-    if not text:
+    if not pages:
         raise PDFExtractionError(
             f"No readable text was found in the {document_name} PDF. OCR is not supported."
         )
+    return pages
+
+
+def extract_pdf_text(pdf_data: bytes, document_name: str) -> str:
+    pages = extract_pdf_pages(pdf_data, document_name)
+    text = "\n".join(page_text for _, page_text in pages)
     if len(text) > MAX_DOCUMENT_TEXT:
-        raise PDFExtractionError(f"The {document_name} PDF contains too much text. Use a shorter PDF.")
+        raise PDFExtractionError(
+            f"The {document_name} PDF contains too much text. Use a shorter PDF."
+        )
     return text
 
 

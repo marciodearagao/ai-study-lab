@@ -78,6 +78,11 @@ legend { float: left; padding: 7px 0; color: var(--muted); font-size: 13px; font
 .level-options span { display: block; padding: 7px 13px; border-radius: 999px; color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; }
 .level-options input:checked + span { color: var(--green); background: var(--green-soft); }
 .level-options input:focus-visible + span { outline: 2px solid var(--green); outline-offset: 2px; }
+.study-material-upload { margin: 8px 3px 0; padding: 10px; display: flex; align-items: center; justify-content: space-between; gap: 18px; border-top: 1px solid var(--line); }
+.study-material-upload > div:first-child { min-width: 0; }
+.study-material-upload .field-label { padding: 0 0 3px; }
+.study-material-upload .field-label small { margin-left: 5px; color: var(--clay); font-size: 9px; }
+.study-material-upload .pdf-upload-row { min-width: 135px; }
 .form-message { min-height: 18px; margin: 5px 13px 0; color: #9b4039; font-size: 13px; }
 
 .lesson-placeholder { margin-top: 20px; padding: 27px 30px; display: flex; justify-content: space-between; align-items: center; gap: 24px; border-left: 4px solid var(--clay); border-radius: 5px 16px 16px 5px; background: var(--green-soft); outline: none; }
@@ -89,6 +94,13 @@ legend { float: left; padding: 7px 0; color: var(--muted); font-size: 13px; font
 .key-points-heading { margin: 20px 0 7px; color: var(--green); font-size: 13px; }
 .key-points { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: var(--muted); font-size: 14px; line-height: 1.45; }
 .key-points li::marker { color: var(--clay); }
+.grounded-indicator { width: fit-content; margin-top: 12px !important; padding: 5px 9px; border-radius: 999px; color: var(--green) !important; background: rgba(255, 255, 255, 0.58); font-size: 11px; font-weight: 700; }
+.lesson-sources { margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(40, 94, 80, 0.16); }
+.lesson-sources[hidden], .grounded-indicator[hidden] { display: none; }
+.lesson-sources h3 { margin: 0 0 7px; color: var(--green); font-size: 13px; }
+.lesson-sources ul { margin: 0; padding: 0; display: grid; gap: 7px; list-style: none; }
+.lesson-sources li { color: var(--muted); font-size: 12px; line-height: 1.45; }
+.lesson-sources strong { margin-right: 5px; color: var(--ink); }
 .lesson-number { color: rgba(40, 94, 80, 0.16); font-family: "Newsreader", serif; font-size: 58px; }
 .lesson-actions { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 9px; }
 .study-flashcards-button, .take-quiz-button, .reveal-button { padding: 11px 16px; border: 0; border-radius: 10px; color: white; background: var(--green); font-weight: 700; cursor: pointer; }
@@ -208,6 +220,8 @@ footer { width: min(1180px, calc(100% - 48px)); margin: 0 auto; padding: 25px 0 
   .level-options { width: 100%; }
   .level-options label { flex: 1; text-align: center; }
   .level-options span { padding-inline: 7px; }
+  .study-material-upload { align-items: stretch; flex-direction: column; gap: 8px; }
+  .study-material-upload .pdf-upload-row { width: 100%; }
   .lesson-number { display: none; }
   .flashcard-mode, .quiz-mode { padding-inline: 20px; }
   .quiz-options { grid-template-columns: 1fr; }

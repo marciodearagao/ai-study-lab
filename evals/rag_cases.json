@@ -1,0 +1,69 @@
+[
+  {
+    "id": "rag-python-decorators",
+    "topic": "Python decorators",
+    "level": "Basic",
+    "query": "How can a decorator modify a Python function without changing its body?",
+    "pages": [
+      {"page_number": 1, "text": "Python decorators wrap a callable and can extend its behavior without editing the wrapped function body."},
+      {"page_number": 2, "text": "A decorator is commonly applied with the at-sign syntax and returns a replacement callable."},
+      {"page_number": 3, "text": "Il passato prossimo usa gli ausiliari avere o essere con il participio passato."},
+      {"page_number": 4, "text": "Photosynthesis converts light energy into chemical energy in plants."},
+      {"page_number": 5, "text": "A football match is divided into two halves."}
+    ],
+    "expected_pages": [1, 2],
+    "irrelevant_pages": [3, 4, 5],
+    "expected_concepts": ["decorator", "function"],
+    "unsupported": false
+  },
+  {
+    "id": "rag-italian-passato-prossimo",
+    "topic": "Italian passato prossimo",
+    "level": "Basic",
+    "query": "Como se forma o passato prossimo em italiano?",
+    "pages": [
+      {"page_number": 1, "text": "Il passato prossimo si forma con avere o essere al presente e il participio passato del verbo."},
+      {"page_number": 2, "text": "Con essere, il participio passato concorda nel genere e nel numero con il soggetto."},
+      {"page_number": 3, "text": "Python decorators wrap functions to add behavior."},
+      {"page_number": 4, "text": "La fotosintesi converte l'energia luminosa in energia chimica."},
+      {"page_number": 5, "text": "Les prévisions météorologiques annoncent de la pluie."}
+    ],
+    "expected_pages": [1, 2],
+    "irrelevant_pages": [3, 4, 5],
+    "expected_concepts": ["passato prossimo", "participio passato"],
+    "unsupported": false
+  },
+  {
+    "id": "rag-competing-context",
+    "topic": "RAG retrieval precision",
+    "level": "Intermediate",
+    "query": "What does retrieval precision measure in RAG evaluation?",
+    "pages": [
+      {"page_number": 1, "text": "A Python loop repeats a block of code."},
+      {"page_number": 2, "text": "Retrieval precision measures what proportion of retrieved passages are relevant to the query in a Retrieval-Augmented Generation system."},
+      {"page_number": 3, "text": "Italian nouns have grammatical gender."},
+      {"page_number": 4, "text": "Plants absorb light during photosynthesis."},
+      {"page_number": 5, "text": "Kubernetes schedules containers across a cluster."},
+      {"page_number": 6, "text": "A football pitch has two goals."}
+    ],
+    "expected_pages": [2],
+    "irrelevant_pages": [1, 3, 4, 5, 6],
+    "expected_concepts": ["retrieval precision", "relevant"],
+    "unsupported": false
+  },
+  {
+    "id": "rag-unsupported-french-revolution",
+    "topic": "Causes of the French Revolution",
+    "level": "Basic",
+    "query": "What caused the French Revolution?",
+    "pages": [
+      {"page_number": 1, "text": "Python decorators wrap or replace callable objects."},
+      {"page_number": 2, "text": "Il passato prossimo describes completed past actions in Italian."},
+      {"page_number": 3, "text": "Photosynthesis converts light energy into chemical energy."}
+    ],
+    "expected_pages": [],
+    "irrelevant_pages": [1, 2, 3],
+    "expected_concepts": [],
+    "unsupported": true
+  }
+]

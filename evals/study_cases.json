@@ -1,0 +1,194 @@
+[
+  {
+    "id": "python-decorators-basic",
+    "topic": "Python decorators",
+    "level": "Basic",
+    "expected_concepts": ["wrapper function", "@ syntax"],
+    "forbidden_concepts": [],
+    "lesson": {
+      "title": "Python Decorators",
+      "short_explanation": "A decorator wraps a function to add behavior without changing the function's body.",
+      "key_concepts": [
+        "A decorator accepts a function and returns a replacement.",
+        "A wrapper function usually calls the original function.",
+        "The @ syntax applies a decorator above a function definition."
+      ],
+      "flashcards": [
+        {
+          "question": "What does a Python decorator receive?",
+          "answer": "It receives the function being decorated."
+        },
+        {
+          "question": "What does a decorator return?",
+          "answer": "It returns a callable that replaces or wraps the original function."
+        },
+        {
+          "question": "What is the role of a wrapper function?",
+          "answer": "It adds behavior before or after calling the original function."
+        },
+        {
+          "question": "How is a decorator commonly applied?",
+          "answer": "Place its name with @ directly above a function definition."
+        },
+        {
+          "question": "Does a decorator require editing the original function body?",
+          "answer": "No. It adds behavior from outside the original body."
+        }
+      ],
+      "quiz_questions": [
+        {
+          "question": "Which symbol applies a decorator above a function?",
+          "options": ["@", "#", "$", "&"],
+          "correct_answer": "@",
+          "explanation": "Python uses @ followed by the decorator name."
+        },
+        {
+          "question": "What normally happens inside a wrapper?",
+          "options": ["The original function is called", "Python is reinstalled", "A class is deleted", "The file is renamed"],
+          "correct_answer": "The original function is called",
+          "explanation": "The wrapper surrounds a call to the original function."
+        },
+        {
+          "question": "Why use a decorator?",
+          "options": ["To add reusable behavior", "To rename Python", "To remove all arguments", "To create a database"],
+          "correct_answer": "To add reusable behavior",
+          "explanation": "Decorators apply reusable behavior without editing each function."
+        },
+        {
+          "question": "What must a basic decorator return?",
+          "options": ["A callable", "A CSS rule", "A PDF", "A shell process"],
+          "correct_answer": "A callable",
+          "explanation": "The returned callable is used in place of the decorated function."
+        }
+      ]
+    }
+  },
+  {
+    "id": "italian-passato-prossimo-basic",
+    "topic": "Italian passato prossimo",
+    "level": "Basic",
+    "expected_concepts": ["past participle", "avere or essere"],
+    "forbidden_concepts": [],
+    "lesson": {
+      "title": "Italian Passato Prossimo",
+      "short_explanation": "The passato prossimo describes completed past actions using an auxiliary verb and a past participle.",
+      "key_concepts": [
+        "Choose avere or essere as the auxiliary verb.",
+        "Add the main verb's past participle.",
+        "With essere, the participle agrees with the subject."
+      ],
+      "flashcards": [
+        {
+          "question": "What two parts form the passato prossimo?",
+          "answer": "A present-tense auxiliary and a past participle."
+        },
+        {
+          "question": "Which auxiliary verbs are used?",
+          "answer": "Avere or essere."
+        },
+        {
+          "question": "What is the past participle of parlare?",
+          "answer": "Parlato."
+        },
+        {
+          "question": "When does the participle agree with the subject?",
+          "answer": "When the auxiliary is essere."
+        },
+        {
+          "question": "What does ho mangiato mean?",
+          "answer": "I ate or I have eaten."
+        }
+      ],
+      "quiz_questions": [
+        {
+          "question": "Which pair contains the passato prossimo auxiliaries?",
+          "options": ["Avere and essere", "Fare and dire", "Dare and stare", "Sapere and vedere"],
+          "correct_answer": "Avere and essere",
+          "explanation": "Passato prossimo uses a form of avere or essere."
+        },
+        {
+          "question": "What is the past participle of parlare?",
+          "options": ["Parlato", "Parlando", "Parlerò", "Parlava"],
+          "correct_answer": "Parlato",
+          "explanation": "Regular -are verbs form the participle with -ato."
+        },
+        {
+          "question": "Which phrase means I ate?",
+          "options": ["Ho mangiato", "Sono mangiato", "Mangio", "Mangerò"],
+          "correct_answer": "Ho mangiato",
+          "explanation": "Mangiare commonly uses avere: ho mangiato."
+        },
+        {
+          "question": "When is agreement required?",
+          "options": ["With essere", "With every avere verb", "Only in questions", "Only with adverbs"],
+          "correct_answer": "With essere",
+          "explanation": "The participle agrees with the subject when essere is used."
+        }
+      ]
+    }
+  },
+  {
+    "id": "rag-evaluation-basic",
+    "topic": "RAG evaluation",
+    "level": "Basic",
+    "expected_concepts": ["retrieval-augmented generation", "retrieval quality"],
+    "forbidden_concepts": ["red-amber-green"],
+    "lesson": {
+      "title": "Evaluating Retrieval-Augmented Generation",
+      "short_explanation": "RAG evaluation checks whether retrieval finds useful evidence and whether generation uses that evidence to answer accurately.",
+      "key_concepts": [
+        "Retrieval quality measures whether relevant context was found.",
+        "Answer faithfulness checks whether claims follow the retrieved context.",
+        "Answer relevance checks whether the response addresses the question."
+      ],
+      "flashcards": [
+        {
+          "question": "What does RAG mean here?",
+          "answer": "Retrieval-Augmented Generation."
+        },
+        {
+          "question": "What does retrieval quality measure?",
+          "answer": "Whether the system found context relevant to the question."
+        },
+        {
+          "question": "What is answer faithfulness?",
+          "answer": "The degree to which answer claims are supported by retrieved context."
+        },
+        {
+          "question": "What is answer relevance?",
+          "answer": "How directly the answer addresses the user's question."
+        },
+        {
+          "question": "Why evaluate retrieval and generation separately?",
+          "answer": "It helps locate whether a failure came from context selection or answer creation."
+        }
+      ],
+      "quiz_questions": [
+        {
+          "question": "What is evaluated in the retrieval stage?",
+          "options": ["Relevant context selection", "Button color", "Server hostname", "User password strength"],
+          "correct_answer": "Relevant context selection",
+          "explanation": "Retrieval evaluation checks whether useful context was selected."
+        },
+        {
+          "question": "What does faithfulness test?",
+          "options": ["Support from retrieved context", "Response font", "Network speed", "File compression"],
+          "correct_answer": "Support from retrieved context",
+          "explanation": "A faithful answer grounds its claims in the supplied context."
+        },
+        {
+          "question": "Why separate retrieval and generation metrics?",
+          "options": ["To locate the source of failure", "To create more users", "To store more files", "To change providers"],
+          "correct_answer": "To locate the source of failure",
+          "explanation": "Separate metrics show which stage needs improvement."
+        },
+        {
+          "question": "What does answer relevance measure?",
+          "options": ["How well the answer addresses the question", "How many files exist", "How colorful the UI is", "How long the API key is"],
+          "correct_answer": "How well the answer addresses the question",
+          "explanation": "Relevance focuses on whether the response answers what was asked."
+        }
+      ]
+    }
+  }
+]

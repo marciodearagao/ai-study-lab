@@ -1,0 +1,87 @@
+[
+  {
+    "id": "backend-gap-kubernetes",
+    "job_description": "Backend engineer requiring Python, FastAPI, and Kubernetes.",
+    "resume_text": "Built Python services and FastAPI endpoints.",
+    "linkedin_text": null,
+    "cover_letter_text": null,
+    "expected_evidence": ["Python", "FastAPI"],
+    "forbidden_evidence": ["Kubernetes"],
+    "expected_gaps": ["Kubernetes"],
+    "analysis": {
+      "fit_level": "Partial fit",
+      "fit_summary": "The CV supports the application skills but not the deployment requirement.",
+      "evidence": [
+        "CV: Built Python services.",
+        "CV: Created FastAPI endpoints."
+      ],
+      "gaps": [
+        "Kubernetes experience is not shown."
+      ],
+      "suggested_study_topics": [
+        "Kubernetes fundamentals"
+      ],
+      "interview_questions": [
+        "How did you structure your FastAPI services?",
+        "How would you prepare an API for container orchestration?"
+      ]
+    }
+  },
+  {
+    "id": "speech-gap-text-to-speech",
+    "job_description": "Engineer requiring NLP, speech-to-text, and text-to-speech experience.",
+    "resume_text": "Developed NLP pipelines and a speech-to-text transcription feature.",
+    "linkedin_text": null,
+    "cover_letter_text": null,
+    "expected_evidence": ["NLP", "speech-to-text"],
+    "forbidden_evidence": ["text-to-speech"],
+    "expected_gaps": ["text-to-speech"],
+    "analysis": {
+      "fit_level": "Good fit",
+      "fit_summary": "The CV supports two core language capabilities while leaving one requirement unverified.",
+      "evidence": [
+        "CV: Developed NLP pipelines.",
+        "CV: Built a speech-to-text transcription feature."
+      ],
+      "gaps": [
+        "Text-to-speech experience is not shown."
+      ],
+      "suggested_study_topics": [
+        "Text-to-speech system fundamentals"
+      ],
+      "interview_questions": [
+        "How did you evaluate the transcription feature?",
+        "What tradeoffs did you consider in the NLP pipeline?"
+      ]
+    }
+  },
+  {
+    "id": "multiple-synthetic-sources",
+    "job_description": "Platform role requiring Python APIs, cloud experience, and stakeholder communication.",
+    "resume_text": "Built Python APIs for internal data services.",
+    "linkedin_text": "Lists a synthetic AWS migration project.",
+    "cover_letter_text": "Expresses interest in stakeholder-focused platform work.",
+    "expected_evidence": ["Python APIs", "AWS", "stakeholder-focused"],
+    "forbidden_evidence": ["Kubernetes"],
+    "expected_gaps": ["production cloud deployment depth"],
+    "analysis": {
+      "fit_level": "Partial fit",
+      "fit_summary": "The supplied sources show relevant foundations but limited deployment detail.",
+      "evidence": [
+        "CV: Built Python APIs for internal data services.",
+        "LinkedIn: Lists a synthetic AWS migration project.",
+        "Cover Letter: Expresses interest in stakeholder-focused platform work."
+      ],
+      "gaps": [
+        "Production cloud deployment depth is not clearly supported."
+      ],
+      "suggested_study_topics": [
+        "Cloud deployment architecture"
+      ],
+      "interview_questions": [
+        "What responsibilities did you have in the AWS migration project?",
+        "How do you explain platform tradeoffs to stakeholders?"
+      ]
+    }
+  }
+]

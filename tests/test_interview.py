@@ -1,3 +1,4 @@
+import asyncio
 from io import BytesIO
 
 import pytest
@@ -10,8 +11,12 @@ from app.ai import AIGenerationError
 from app.interview import (
     InterviewAnalysis,
     InterviewRequest,
+    MAX_DOCUMENT_TEXT,
+    PDFExtractionError,
     build_interview_messages,
+    extract_pdf_text,
     extract_resume_text,
+    generate_interview_analysis,
 )
 from app.main import app
 
@@ -94,6 +99,17 @@ def test_valid_pdf_is_extracted_and_analyzed(monkeypatch) -> None:
     assert response.status_code == 200
     assert response.json()["fit_level"] == "Good fit"
     assert "Built Python APIs" in extract_resume_text(make_pdf("Built Python APIs"))
+
+
+def test_interview_pdf_keeps_direct_context_text_limit(monkeypatch) -> None:
+    oversized_text = "x" * (MAX_DOCUMENT_TEXT + 1)
+    monkeypatch.setattr(
+        "app.interview.extract_pdf_pages",
+        lambda _pdf_data, _document_name: [(1, oversized_text)],
+    )
+
+    with pytest.raises(PDFExtractionError, match="contains too much text"):
+        extract_pdf_text(b"synthetic PDF", "resume")
 
 
 def test_cv_and_linkedin_pdfs_are_extracted_and_analyzed(monkeypatch) -> None:
@@ -329,3 +345,25 @@ def test_interview_ai_failure_is_handled_safely(monkeypatch) -> None:
     assert response.json() == {
         "detail": "Groq is temporarily unavailable. Please try again shortly."
     }
+
+
+def test_interview_generation_enables_transparent_fallback(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def fake_generation(**kwargs):
+        captured.update(kwargs)
+        return sample_analysis()
+
+    monkeypatch.setattr("app.interview.generate_structured", fake_generation)
+    result = asyncio.run(
+        generate_interview_analysis(
+            InterviewRequest(
+                job_description="Python role",
+                resume_text="Built Python APIs",
+            )
+        )
+    )
+
+    assert result == sample_analysis()
+    assert captured["response_model"] is InterviewAnalysis
+    assert captured["allow_gemini_fallback"] is True

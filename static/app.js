@@ -5,6 +5,11 @@ const lesson = document.querySelector("#lesson-placeholder");
 const lessonTitle = document.querySelector("#lesson-title");
 const lessonDescription = document.querySelector("#lesson-description");
 const keyPoints = document.querySelector("#key-points");
+const studyPdfInput = document.querySelector("#study-pdf");
+const studyPdfFileName = document.querySelector("#study-pdf-file-name");
+const groundedIndicator = document.querySelector("#grounded-indicator");
+const lessonSources = document.querySelector("#lesson-sources");
+const sourceReferences = document.querySelector("#source-references");
 const submitButton = form.querySelector('button[type="submit"]');
 const buttonLabel = submitButton.querySelector(".button-label");
 const studyFlashcardsButton = document.querySelector("#study-flashcards");
@@ -107,21 +112,32 @@ form.addEventListener("submit", async (event) => {
   }
 
   const level = new FormData(form).get("level");
+  const studyPdf = studyPdfInput.files[0];
   message.textContent = "";
   topicInput.removeAttribute("aria-invalid");
   lesson.hidden = true;
   flashcardMode.hidden = true;
   submitButton.disabled = true;
-  buttonLabel.textContent = "Creating lesson...";
+  buttonLabel.textContent = studyPdf ? "Preparing your study material..." : "Creating lesson...";
   form.setAttribute("aria-busy", "true");
   let failureMessage = "We couldn’t create that lesson. Please try again.";
 
   try {
-    const response = await fetch("/api/lessons", {
+    let endpoint = "/api/lessons";
+    let requestOptions = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ topic, level }),
-    });
+    };
+    if (studyPdf) {
+      const formData = new FormData();
+      formData.append("topic", topic);
+      formData.append("level", level);
+      formData.append("study_pdf", studyPdf);
+      endpoint = "/api/lessons/pdf";
+      requestOptions = { method: "POST", body: formData };
+    }
+    const response = await fetch(endpoint, requestOptions);
     const result = await response.json();
 
     if (!response.ok) {
@@ -131,17 +147,30 @@ form.addEventListener("submit", async (event) => {
       throw new Error("Lesson request failed");
     }
 
-    lessonTitle.textContent = result.title;
-    lessonDescription.textContent = result.short_explanation;
+    const lessonResult = studyPdf ? result.lesson : result;
+    lessonTitle.textContent = lessonResult.title;
+    lessonDescription.textContent = lessonResult.short_explanation;
     keyPoints.replaceChildren(
-      ...result.key_concepts.map((point) => {
+      ...lessonResult.key_concepts.map((point) => {
         const item = document.createElement("li");
         item.textContent = point;
         return item;
       }),
     );
-    flashcards = result.flashcards;
-    quizQuestions = result.quiz_questions;
+    flashcards = lessonResult.flashcards;
+    quizQuestions = lessonResult.quiz_questions;
+    const sources = studyPdf ? result.sources : [];
+    groundedIndicator.hidden = !result.used_uploaded_material;
+    lessonSources.hidden = sources.length === 0;
+    sourceReferences.replaceChildren(
+      ...sources.map((source) => {
+        const item = document.createElement("li");
+        const page = document.createElement("strong");
+        page.textContent = `Page ${source.page_number}`;
+        item.append(page, source.excerpt);
+        return item;
+      }),
+    );
     currentCardIndex = 0;
     lesson.hidden = false;
     lesson.focus();
@@ -152,6 +181,11 @@ form.addEventListener("submit", async (event) => {
     buttonLabel.textContent = "Start learning";
     form.removeAttribute("aria-busy");
   }
+});
+
+studyPdfInput.addEventListener("change", () => {
+  const file = studyPdfInput.files[0];
+  studyPdfFileName.textContent = file ? `Selected: ${file.name}` : "No PDF selected";
 });
 
 studyFlashcardsButton.addEventListener("click", () => {
