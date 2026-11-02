@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Newsreader:opsz,wght@6..72,600&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/styles.css">
-    <script src="/static/app.js" defer></script>
+  <script src="/static/app.js?v=step3c-quiz" defer></script>
   </head>
   <body>
     <header class="site-header">
@@ -19,6 +19,7 @@
       </a>
       <nav aria-label="Primary navigation">
         <a class="nav-link" href="#study" data-workspace-link>Study</a>
+        <a class="nav-link" href="#official-learning-paths" data-workspace-link>Official Learning Paths</a>
         <a class="nav-link" href="#interview-coach" data-workspace-link>Interview Coach</a>
         <a class="nav-link" href="#progress" data-workspace-link>Progress</a>
       </nav>
@@ -122,6 +123,28 @@
             <button class="back-from-quiz" type="button">Back to lesson</button>
           </div>
         </section>
+      </section>
+
+      <section class="official-paths workspace" id="official-learning-paths" data-workspace="official-learning-paths" aria-labelledby="official-paths-title" hidden>
+        <div class="section-heading">
+          <div>
+            <h2 id="official-paths-title">Official Learning Paths</h2>
+          </div>
+          <p>Explore structured learning created for AI.</p>
+        </div>
+
+        <div class="official-path-layout">
+          <div class="official-path-browser">
+            <p class="official-path-status" id="official-paths-status" role="status" aria-live="polite">Loading official learning paths...</p>
+            <button class="official-path-retry" id="official-paths-retry" type="button" hidden>Try again</button>
+            <div class="official-path-list" id="official-path-list" aria-label="Available learning paths"></div>
+          </div>
+          <section class="official-path-detail" id="official-path-detail" aria-labelledby="official-path-detail-title" aria-live="polite" hidden>
+            <span class="lesson-kicker">Selected learning path</span>
+            <h3 id="official-path-detail-title"></h3>
+            <div id="official-path-content"></div>
+          </section>
+        </div>
       </section>
 
       <section class="coach workspace" id="interview-coach" data-workspace="interview-coach" aria-labelledby="coach-title" hidden>

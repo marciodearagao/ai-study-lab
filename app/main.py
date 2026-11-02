@@ -11,6 +11,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.ai import AIGenerationError
+from app.content import ContentLoadError, load_learning_paths
 from app.interview import (
     InterviewAnalysis,
     InterviewRequest,
@@ -136,6 +137,43 @@ async def home() -> HTMLResponse:
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok", "version": app.version}
+
+
+@app.get("/api/learning-paths")
+def list_learning_paths() -> list[dict[str, object]]:
+    try:
+        paths = load_learning_paths()
+    except ContentLoadError as error:
+        raise HTTPException(
+            status_code=500, detail="Learning content is unavailable."
+        ) from error
+
+    return [
+        {
+            "id": path["id"],
+            "title": path["title"],
+            "modules": [
+                {"id": module["id"], "title": module["title"]}
+                for module in path["modules"]
+            ],
+        }
+        for path in paths
+    ]
+
+
+@app.get("/api/learning-paths/{path_id}")
+def get_learning_path(path_id: str) -> dict[str, object]:
+    try:
+        paths = load_learning_paths()
+    except ContentLoadError as error:
+        raise HTTPException(
+            status_code=500, detail="Learning content is unavailable."
+        ) from error
+
+    for path in paths:
+        if path["id"] == path_id:
+            return path
+    raise HTTPException(status_code=404, detail="Learning path not found.")
 
 
 @app.post("/api/lessons", response_model=Lesson)

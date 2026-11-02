@@ -1,0 +1,52 @@
+{
+  "id": "what-is-artificial-intelligence",
+  "module_id": "introduction",
+  "title": "What Is Artificial Intelligence?",
+  "explanation_file": "what-is-artificial-intelligence.md",
+  "quiz": [
+    {
+      "id": "what-is-ai",
+      "question": "What is artificial intelligence (AI)?",
+      "options": {
+        "A": "Software that can perform tasks that usually need human intelligence",
+        "B": "A type of computer screen",
+        "C": "A machine that only stores files",
+        "D": "A programming language"
+      },
+      "correct_answer": "A"
+    },
+    {
+      "id": "ai-example",
+      "question": "Which is an example of AI?",
+      "options": {
+        "A": "A voice assistant that understands a spoken request",
+        "B": "A plain light switch",
+        "C": "An empty notebook",
+        "D": "A wooden chair"
+      },
+      "correct_answer": "A"
+    },
+    {
+      "id": "ai-learning",
+      "question": "How can some AI systems improve at a task?",
+      "options": {
+        "A": "By finding patterns in examples",
+        "B": "By growing like a plant",
+        "C": "By changing their computer screen",
+        "D": "By avoiding all information"
+      },
+      "correct_answer": "A"
+    },
+    {
+      "id": "ai-limit",
+      "question": "Does an AI system always understand the world like a person?",
+      "options": {
+        "A": "No. It can produce useful results without human-like understanding",
+        "B": "Yes. Every AI has human feelings",
+        "C": "Yes. AI knows everything automatically",
+        "D": "No. AI can never complete a task"
+      },
+      "correct_answer": "A"
+    }
+  ]
+}

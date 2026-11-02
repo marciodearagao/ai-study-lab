@@ -424,10 +424,463 @@ coverLetterPdfInput.addEventListener("change", () => {
 const workspaces = [...document.querySelectorAll("[data-workspace]")];
 const workspaceLinks = [...document.querySelectorAll("[data-workspace-link]")];
 const navigationLinks = [...document.querySelectorAll("nav [data-workspace-link]")];
+const officialPathStatus = document.querySelector("#official-paths-status");
+const officialPathList = document.querySelector("#official-path-list");
+const officialPathDetail = document.querySelector("#official-path-detail");
+const officialPathDetailTitle = document.querySelector("#official-path-detail-title");
+const officialPathContent = document.querySelector("#official-path-content");
+const officialPathRetry = document.querySelector("#official-paths-retry");
+let officialPathsLoaded = false;
+let officialPathsLoading = false;
+let officialQuizState = null;
+
+function resetOfficialQuizProgress() {
+  if (!officialQuizState) {
+    return;
+  }
+  officialQuizState.questionIndex = 0;
+  officialQuizState.correctCount = 0;
+  officialQuizState.selectedKey = null;
+  officialQuizState.submitted = false;
+  officialQuizState.completion.hidden = true;
+  officialQuizState.questionView.hidden = false;
+  renderOfficialQuizQuestion();
+}
+
+function renderOfficialQuizQuestion() {
+  const state = officialQuizState;
+  const question = state.questions[state.questionIndex];
+  state.counter.textContent = `Question ${state.questionIndex + 1} / ${state.questions.length}`;
+  state.question.textContent = question.question;
+  state.feedback.hidden = true;
+  state.next.hidden = true;
+  state.submit.disabled = true;
+  state.options.replaceChildren(
+    ...["A", "B", "C", "D"].map((key) => {
+      const option = document.createElement("button");
+      option.type = "button";
+      option.setAttribute("aria-pressed", "false");
+      option.textContent = `${key}. ${question.options[key]}`;
+      option.addEventListener("click", () => {
+        if (state.submitted) {
+          return;
+        }
+        state.selectedKey = key;
+        state.submit.disabled = false;
+        [...state.options.children].forEach((button) => {
+          button.setAttribute("aria-pressed", String(button === option));
+        });
+      });
+      return option;
+    }),
+  );
+}
+
+function submitOfficialQuizAnswer() {
+  const state = officialQuizState;
+  if (!state || state.submitted || !state.selectedKey) {
+    return;
+  }
+  const question = state.questions[state.questionIndex];
+  state.submitted = true;
+  const isCorrect = state.selectedKey === question.correct_answer;
+  if (isCorrect) {
+    state.correctCount += 1;
+  }
+  [...state.options.children].forEach((button, index) => {
+    const key = ["A", "B", "C", "D"][index];
+    button.disabled = true;
+    if (key === question.correct_answer) {
+      button.classList.add("correct-answer");
+    }
+    if (key === state.selectedKey && !isCorrect) {
+      button.classList.add("selected-incorrect");
+    }
+  });
+  state.feedbackLabel.textContent = isCorrect ? "Correct!" : "Incorrect.";
+  state.feedbackText.textContent = isCorrect
+    ? "Your answer is correct."
+    : `The correct answer is ${question.correct_answer}: ${question.options[question.correct_answer]}`;
+  state.feedback.className = `quiz-feedback ${isCorrect ? "correct" : "incorrect"}`;
+  state.feedback.hidden = false;
+  state.next.textContent = state.questionIndex === state.questions.length - 1
+    ? "See results"
+    : "Next question";
+  state.next.hidden = false;
+}
+
+function advanceOfficialQuiz() {
+  const state = officialQuizState;
+  if (!state || !state.submitted) {
+    return;
+  }
+  if (state.questionIndex < state.questions.length - 1) {
+    state.questionIndex += 1;
+    state.selectedKey = null;
+    state.submitted = false;
+    renderOfficialQuizQuestion();
+    return;
+  }
+  state.questionView.hidden = true;
+  state.completion.hidden = false;
+  state.score.textContent = `${state.correctCount} / ${state.questions.length} correct`;
+}
+
+function renderOfficialQuiz(quiz) {
+  const section = document.createElement("section");
+  section.className = "official-quiz";
+  const title = document.createElement("h5");
+  title.textContent = "Lesson quiz";
+  section.append(title);
+
+  const validQuiz = Array.isArray(quiz) && quiz.length > 0 && quiz.every((question) => (
+    question
+    && typeof question.question === "string"
+    && question.options
+    && ["A", "B", "C", "D"].every((key) => typeof question.options[key] === "string")
+    && ["A", "B", "C", "D"].includes(question.correct_answer)
+  ));
+  if (!validQuiz) {
+    const empty = document.createElement("p");
+    empty.textContent = "Quiz questions are not available yet.";
+    section.append(empty);
+    return section;
+  }
+
+  const questionView = document.createElement("div");
+  questionView.className = "official-quiz-question-view";
+  const counter = document.createElement("p");
+  counter.className = "lesson-kicker";
+  counter.setAttribute("aria-live", "polite");
+  const questionText = document.createElement("h6");
+  questionText.className = "official-quiz-question";
+  const options = document.createElement("div");
+  options.className = "quiz-options official-quiz-options";
+  const feedback = document.createElement("div");
+  feedback.className = "quiz-feedback";
+  feedback.setAttribute("role", "status");
+  feedback.hidden = true;
+  const feedbackLabel = document.createElement("strong");
+  const feedbackText = document.createElement("p");
+  feedback.append(feedbackLabel, feedbackText);
+  const controls = document.createElement("div");
+  controls.className = "official-quiz-controls";
+  const submit = document.createElement("button");
+  submit.type = "button";
+  submit.textContent = "Submit answer";
+  submit.addEventListener("click", submitOfficialQuizAnswer);
+  const next = document.createElement("button");
+  next.type = "button";
+  next.textContent = "Next question";
+  next.hidden = true;
+  next.addEventListener("click", advanceOfficialQuiz);
+  controls.append(submit, next);
+  questionView.append(counter, questionText, options, feedback, controls);
+
+  const completion = document.createElement("div");
+  completion.className = "official-quiz-completion";
+  completion.hidden = true;
+  const completedTitle = document.createElement("h6");
+  completedTitle.textContent = "Quiz complete";
+  const score = document.createElement("p");
+  const restart = document.createElement("button");
+  restart.type = "button";
+  restart.textContent = "Restart quiz";
+  restart.addEventListener("click", resetOfficialQuizProgress);
+  completion.append(completedTitle, score, restart);
+  section.append(questionView, completion);
+
+  officialQuizState = {
+    questions: quiz,
+    questionIndex: 0,
+    correctCount: 0,
+    selectedKey: null,
+    submitted: false,
+    questionView,
+    completion,
+    counter,
+    question: questionText,
+    options,
+    feedback,
+    feedbackLabel,
+    feedbackText,
+    submit,
+    next,
+    score,
+  };
+  renderOfficialQuizQuestion();
+  return section;
+}
+
+function renderInlineMarkdown(text, parent) {
+  const pattern = /`([^`]+)`/g;
+  let lastIndex = 0;
+  for (const match of text.matchAll(pattern)) {
+    parent.append(document.createTextNode(text.slice(lastIndex, match.index)));
+    const code = document.createElement("code");
+    code.textContent = match[1];
+    parent.append(code);
+    lastIndex = match.index + match[0].length;
+  }
+  parent.append(document.createTextNode(text.slice(lastIndex)));
+}
+
+function renderLessonMarkdown(markdown) {
+  const fragment = document.createDocumentFragment();
+  const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
+  let paragraph = [];
+  let list = null;
+  let codeLines = null;
+
+  const flushParagraph = () => {
+    if (paragraph.length) {
+      const element = document.createElement("p");
+      renderInlineMarkdown(paragraph.join(" "), element);
+      fragment.append(element);
+      paragraph = [];
+    }
+  };
+  const flushList = () => {
+    if (list) {
+      fragment.append(list);
+      list = null;
+    }
+  };
+
+  for (const line of lines) {
+    if (codeLines !== null) {
+      if (/^\s*```/.test(line)) {
+        const pre = document.createElement("pre");
+        const code = document.createElement("code");
+        code.textContent = codeLines.join("\n");
+        pre.append(code);
+        fragment.append(pre);
+        codeLines = null;
+      } else {
+        codeLines.push(line);
+      }
+      continue;
+    }
+    if (/^\s*```/.test(line)) {
+      flushParagraph();
+      flushList();
+      codeLines = [];
+      continue;
+    }
+    const heading = line.match(/^(#{1,6})\s+(.+?)\s*#*\s*$/);
+    if (heading) {
+      flushParagraph();
+      flushList();
+      const element = document.createElement(`h${heading[1].length}`);
+      renderInlineMarkdown(heading[2], element);
+      fragment.append(element);
+      continue;
+    }
+    const item = line.match(/^\s*(?:[-*+]\s+|(\d+)\.\s+)(.+)$/);
+    if (item) {
+      flushParagraph();
+      const tag = item[1] ? "ol" : "ul";
+      if (!list || list.tagName.toLowerCase() !== tag) {
+        flushList();
+        list = document.createElement(tag);
+      }
+      const listItem = document.createElement("li");
+      renderInlineMarkdown(item[2], listItem);
+      list.append(listItem);
+      continue;
+    }
+    if (!line.trim()) {
+      flushParagraph();
+      flushList();
+    } else {
+      flushList();
+      paragraph.push(line.trim());
+    }
+  }
+  if (codeLines !== null) {
+    const pre = document.createElement("pre");
+    const code = document.createElement("code");
+    code.textContent = codeLines.join("\n");
+    pre.append(code);
+    fragment.append(pre);
+  }
+  flushParagraph();
+  flushList();
+  return fragment;
+}
+
+function renderOfficialModule(path, module) {
+  officialQuizState = null;
+  officialPathContent.replaceChildren();
+  const back = document.createElement("button");
+  back.type = "button";
+  back.className = "official-path-back";
+  back.textContent = "← Back to modules";
+  back.addEventListener("click", () => showOfficialPathModules(path));
+  const heading = document.createElement("h4");
+  heading.textContent = module.title;
+  const lessons = document.createElement("ul");
+  module.lessons.forEach((lessonItem) => {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "official-path-lesson";
+    button.textContent = lessonItem.title;
+    button.addEventListener("click", () => renderOfficialLesson(path, module, lessonItem));
+    item.append(button);
+    lessons.append(item);
+  });
+  officialPathContent.append(back, heading, lessons);
+}
+
+function showOfficialPathModules(path) {
+  officialQuizState = null;
+  officialPathContent.replaceChildren();
+  const heading = document.createElement("h4");
+  heading.textContent = "Modules";
+  if (path.modules.length === 0) {
+    const empty = document.createElement("p");
+    empty.textContent = "Modules are not available yet.";
+    officialPathContent.append(heading, empty);
+    return;
+  }
+  const modules = document.createElement("ul");
+  path.modules.forEach((module) => {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "official-path-module";
+    button.textContent = module.title;
+    button.addEventListener("click", () => renderOfficialModule(path, module));
+    item.append(button);
+    modules.append(item);
+  });
+  officialPathContent.append(heading, modules);
+}
+
+function renderOfficialLesson(path, module, lessonItem) {
+  officialQuizState = null;
+  officialPathContent.replaceChildren();
+  const back = document.createElement("button");
+  back.type = "button";
+  back.className = "official-path-back";
+  back.textContent = `← Back to ${module.title}`;
+  back.addEventListener("click", () => renderOfficialModule(path, module));
+  const heading = document.createElement("h4");
+  heading.textContent = lessonItem.title;
+  const explanation = document.createElement("article");
+  explanation.className = "official-lesson-markdown";
+  const markdown = typeof lessonItem.explanation === "string" ? lessonItem.explanation : "";
+  if (markdown.trim()) {
+    explanation.append(renderLessonMarkdown(markdown));
+  } else {
+    const empty = document.createElement("p");
+    empty.textContent = "Lesson content is not available yet.";
+    explanation.append(empty);
+  }
+  officialPathContent.append(back, heading, explanation, renderOfficialQuiz(lessonItem.quiz));
+}
+
+async function selectOfficialPath(path, selectedButton) {
+  officialPathDetailTitle.textContent = path.title;
+  officialPathDetail.hidden = false;
+  officialPathContent.textContent = "Loading learning path...";
+  officialPathList.querySelectorAll(".official-path-choice").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button === selectedButton));
+  });
+  try {
+    const response = await fetch(`/api/learning-paths/${encodeURIComponent(path.id)}`);
+    if (!response.ok) {
+      throw new Error("Learning path could not be loaded.");
+    }
+    const detail = await response.json();
+    if (!Array.isArray(detail.modules) || detail.modules.some((module) => (
+      !Array.isArray(module.lessons)
+    ))) {
+      throw new Error("Learning path response is invalid.");
+    }
+    showOfficialPathModules(detail);
+  } catch (_error) {
+    officialPathContent.replaceChildren();
+    const error = document.createElement("p");
+    error.textContent = "This learning path could not be loaded. Please select it again to retry.";
+    officialPathContent.append(error);
+  }
+}
+
+async function loadOfficialLearningPaths() {
+  if (officialPathsLoaded || officialPathsLoading) {
+    return;
+  }
+  officialPathsLoading = true;
+  officialPathStatus.textContent = "Loading official learning paths...";
+  officialPathRetry.hidden = true;
+  officialPathDetail.hidden = true;
+  officialPathList.replaceChildren();
+
+  let timeoutId;
+  try {
+    const controller = new AbortController();
+    timeoutId = window.setTimeout(() => controller.abort(), 10000);
+    const response = await fetch("/api/learning-paths", { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error("Learning paths could not be loaded.");
+    }
+    const paths = await response.json();
+    if (!Array.isArray(paths) || paths.some((path) => (
+      typeof path.id !== "string"
+      || typeof path.title !== "string"
+      || !Array.isArray(path.modules)
+      || path.modules.some((module) => typeof module.title !== "string")
+    ))) {
+      throw new Error("Learning paths response is invalid.");
+    }
+
+    if (paths.length === 0) {
+      officialPathStatus.textContent = "No official learning paths are available yet.";
+      officialPathsLoaded = true;
+      return;
+    }
+
+    paths.forEach((path) => {
+      const button = document.createElement("button");
+      button.className = "official-path-choice";
+      button.type = "button";
+      button.setAttribute("aria-pressed", "false");
+      button.setAttribute("aria-controls", "official-path-detail");
+
+      const title = document.createElement("span");
+      title.className = "official-path-choice-title";
+      title.textContent = path.title;
+      const moduleSummary = document.createElement("span");
+      moduleSummary.className = "official-path-choice-summary";
+      moduleSummary.textContent = `${path.modules.length} ${path.modules.length === 1 ? "module" : "modules"}`;
+      button.append(title, moduleSummary);
+      button.addEventListener("click", () => selectOfficialPath(path, button));
+      officialPathList.append(button);
+    });
+    officialPathStatus.textContent = `${paths.length} learning ${paths.length === 1 ? "path" : "paths"} available. Select one to view its modules.`;
+    officialPathsLoaded = true;
+  } catch (_error) {
+    officialPathStatus.textContent = "Learning paths could not be loaded. Please try again.";
+    officialPathRetry.hidden = false;
+  } finally {
+    window.clearTimeout(timeoutId);
+    officialPathsLoading = false;
+  }
+}
+
+officialPathRetry.addEventListener("click", () => {
+  loadOfficialLearningPaths();
+});
 
 function showWorkspace(name) {
   const selected = workspaces.find((workspace) => workspace.dataset.workspace === name)
     || document.querySelector('[data-workspace="home"]');
+
+  if (selected.dataset.workspace !== "official-learning-paths") {
+    resetOfficialQuizProgress();
+  }
 
   workspaces.forEach((workspace) => {
     workspace.hidden = workspace !== selected;
@@ -441,6 +894,9 @@ function showWorkspace(name) {
       link.removeAttribute("aria-current");
     }
   });
+  if (selected.dataset.workspace === "official-learning-paths") {
+    loadOfficialLearningPaths();
+  }
   window.scrollTo(0, 0);
 }
 
