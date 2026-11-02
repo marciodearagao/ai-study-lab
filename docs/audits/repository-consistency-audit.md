@@ -1,5 +1,7 @@
 # Repository Consistency Audit
 
+> **Historical audit — superseded by the current project state.** This report records a read-only snapshot from 2026-09-15. Some findings and cleanup actions were subsequently addressed, and the report does not cover the Official Learning Paths implementation. Preserve the original findings below for historical reference; do not treat them as current findings or instructions. Consult the current source, tests, and documentation when assessing the project today.
+
 Audit date: 2026-09-15
 Branch reviewed: `dev`
 Mode: read-only; this report is the only file created

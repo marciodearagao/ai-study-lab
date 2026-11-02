@@ -1,214 +1,122 @@
 # AI Study Lab
 
-AI Study Lab is a local-first learning product that turns a topic or PDF into a concise AI-generated lesson and helps job candidates prepare for a specific role. Version 0.1.0 is a focused public MVP built with FastAPI, Groq as its primary AI provider, an optional Gemini fallback, and a framework-free frontend.
-
-## Why it was built
-
-The project explores two practical uses of structured AI output: active study and grounded interview preparation. It favors short, interactive learning activities and evidence-based coaching over long generated pages or opaque match scores.
+AI Study Lab (ASL) is a local-first learning application focused on practical AI-assisted study. The released version is **0.1.0**. Version **0.2.0 is in development and has not been released**; features added after the `v0.1.0` release are listed under its unreleased section in [CHANGELOG.md](CHANGELOG.md).
 
 ## Current features
 
 ### Study
 
-- Generate a lesson for any topic at Basic, Intermediate, or Advanced level.
-- Review a concise explanation and focused key points.
-- Study exactly 5 generated flashcards one at a time.
-- Take exactly 4 multiple-choice quiz questions with immediate feedback.
-- See a quiz score for the current browser session only.
-- Optionally ground a lesson in one text-based PDF and review concise page-derived sources.
+- Generate a lesson for a learner-selected topic and Basic, Intermediate, or Advanced level.
+- Review a short explanation and key concepts, study five flashcards, and answer four multiple-choice questions with feedback and a session-only score.
+- Optionally provide one text-based PDF. ASL extracts pages, creates local multilingual embeddings, retrieves relevant passages using an ephemeral ChromaDB collection, and generates a grounded lesson with page-based sources.
+
+### Official Learning Paths
+
+- Browse administrator-prepared learning content in the hierarchy **Learning Path → Module → Lesson → Quiz**.
+- The current sample is AI Fundamentals, with an Introduction module and a lesson about artificial intelligence.
+- Lesson explanations are Markdown files. Path, module, lesson metadata, and quiz data are JSON files under `content/`; the current sample quiz has four questions.
+- Lesson quizzes present one question at a time, provide answer feedback, calculate a score, and can be restarted. Quiz state is held in browser memory only.
+- Content is loaded and validated by `app/content.py` and served through `GET /api/learning-paths` and `GET /api/learning-paths/{path_id}`. New content that follows the existing schema can be added as files without changing application code.
 
 ### Interview Coach
 
-- Compare a job description with pasted CV/resume text or one CV/resume PDF.
-- Optionally include one LinkedIn Profile PDF and one Cover Letter PDF.
-- Receive a qualitative fit assessment without a fake numerical match score.
-- Review evidence labeled by source, unsupported requirements, suggested study topics, and a small set of interview questions.
+- Compare a job description with pasted CV/resume text or one CV/resume PDF. Optional LinkedIn Profile and Cover Letter PDFs provide additional context.
+- Review a qualitative, source-grounded assessment, evidence, gaps, suggested study topics, and interview questions. ASL does not calculate an ATS score or match percentage.
 
-### Application
+### Application and developer tools
 
-- Separate Home, Study, Interview Coach, and Progress workspaces.
-- FastAPI REST endpoints backed by provider-independent structured output and Pydantic validation.
-- In-memory PDF text extraction with no document persistence.
-- Local multilingual embeddings and ephemeral Chroma vector search for Study PDF retrieval.
-- Groq primary generation with an optional transparent Gemini fallback and no provider selector.
-- Deterministic, live, RAG, and LLM-as-a-judge evaluation with a combined HTML report.
-- Minimal terminal-only request/provider telemetry with no persistent history.
-- Responsive HTML, CSS, and Vanilla JavaScript interface.
-- One-command launcher with `python run.py`.
-- Focused pytest coverage for validation, providers, PDFs, RAG, evaluation, telemetry, and API flows.
+- Home, Study, Official Learning Paths, and Interview Coach are available workspaces. Progress is currently a placeholder; progress tracking is not implemented.
+- FastAPI provides the web page, health check, learning-path endpoints, Study endpoints, and Interview Coach endpoints.
+- Groq is the primary structured-generation provider; Gemini is an optional transparent fallback for eligible failures.
+- Deterministic, live, RAG, and LLM-as-a-judge evaluations are available separately from the learner interface. Live generation and judge commands can call configured AI providers; the pytest suite mocks provider calls.
+- Request/provider telemetry is written to the server terminal and is not persisted.
 
-## Planned next
-
-- Progress and lightweight gamification: username/profile, XP, attempts, history, mastery, weak topics, last studied, and streaks.
-- Spaced repetition and small improvements to flashcards, completion states, and examples.
-- Additional study activities, introduced and validated one at a time.
-- Optional Ollama support if a clear local-model use case is established.
-
-## Not currently planned
-
-The project does not currently need multi-agent workflows, LangGraph, LangChain without a concrete requirement, MCP integration, microservices, plugin systems, enterprise dependency-injection patterns, or unnecessary cloud infrastructure. Persistent document storage, persistent vector collections, OCR, fake ATS scores, and recruitment/ranking-platform features are also outside the current scope.
-
-## Tech stack
-
-- Python 3.11+
-- FastAPI, Uvicorn, and REST
-- Groq API with optional transparent Google Gemini fallback
-- Pydantic structured-output validation
-- pypdf and fontTools for text-based PDF extraction
-- Sentence Transformers multilingual embeddings
-- ephemeral Chroma vector search
-- HTML, CSS, and Vanilla JavaScript
-- pytest and HTTPX
-
-## Architecture and design philosophy
+## Content structure
 
 ```text
-Browser (HTML/CSS/JavaScript)
-              |
-              v
-       FastAPI REST API
-              |
-              v
-    Small application modules
-              |
-              v
- Structured generation (Groq primary)
-       | eligible failure
-       v
- Optional Gemini fallback
-
-Study PDF -> page extraction -> chunks -> local embeddings -> ephemeral Chroma
-                                                      |
-                                                      v
-                              retrieved passages -> grounded lesson + sources
-
-Professional documents -> in-memory text extraction -> Interview Coach analysis
+content/
+├── paths/       # Learning path JSON files
+├── modules/     # Module JSON files
+└── lessons/     # Lesson JSON metadata, Markdown explanations, and quiz data
 ```
 
-> I deliberately started with a small FastAPI application and one well-designed learning flow. I introduced additional infrastructure only when the product required it.
+IDs use lowercase letters, digits, and hyphens. JSON references connect paths to modules and modules to lessons. Lesson quiz options use stable `A`, `B`, `C`, and `D` keys. The loader validates identifiers, references, quiz answers, and that explanation files remain inside the lessons directory.
 
-There is no persistent database, background worker, frontend framework, or persistence layer. Request models, AI integration, PDF processing, and retrieval remain small and explicit so the product can evolve from demonstrated needs.
+## Technology and architecture
 
-## Installation
+- Python 3.11+, FastAPI, and Uvicorn.
+- Pydantic for request and generated-output validation.
+- Groq with optional Google Gemini fallback.
+- `pypdf` and fontTools for text-based PDF handling.
+- Sentence Transformers for local multilingual embeddings and ChromaDB for ephemeral RAG retrieval.
+- Markdown and JSON files for Official Learning Paths content.
+- HTML, CSS, and Vanilla JavaScript; pytest and HTTPX for tests.
 
-Install [Python 3.11 or newer](https://www.python.org/downloads/), then clone or download this repository and open a terminal in the project directory.
+```text
+Browser (HTML / CSS / Vanilla JavaScript)
+  └── FastAPI
+      ├── Study → app/lessons.py → app/ai.py → Groq / optional Gemini
+      ├── Study PDF → app/rag.py → local embeddings → ephemeral ChromaDB
+      │                              └── retrieved sources → app/ai.py
+      ├── Official Learning Paths → app/content.py → JSON / Markdown files
+      └── Interview Coach → app/interview.py → app/ai.py
+```
 
-Create a virtual environment. A `.venv` is an isolated Python environment for this project, so its packages do not affect other Python projects:
+The application has no database or persistent user-content storage. Uploaded documents are processed for the current request and are not persisted by ASL. Study PDF passages selected for generation, and Interview Coach document text, are sent to Groq and may be sent to Gemini when eligible fallback is used. See [`.env.example`](.env.example) for configuration names; keep API keys in the ignored local `.env` file.
+
+## Planned work
+
+The following items are **not implemented**:
+
+- SQLite persistence for future learning progress.
+- My Learning Studio for learner-created study experiences.
+- A contextual AI mentor that offers hints.
+- A hybrid navigation redesign with a collapsible sidebar.
+
+These plans do not change the current file-based Official Learning Paths content or the existing Study, RAG, and Interview Coach features.
+
+## Setup and running
+
+Install Python 3.11 or newer, then create and activate a virtual environment.
 
 ```bash
 python -m venv .venv
+python -m pip install -e ".[dev]"
+cp .env.example .env
 ```
 
-Activate it in PowerShell:
-
-```powershell
-.venv\Scripts\Activate.ps1
-```
-
-Or activate it in Bash on Windows:
+Activate the environment in Git Bash on Windows:
 
 ```bash
 source .venv/Scripts/activate
 ```
 
-Install the project and development dependencies:
+In Bash on macOS or Linux, use `source .venv/bin/activate` instead.
 
-```bash
-python -m pip install -e ".[dev]"
-```
-
-## Configuration
-
-Create a local `.env` file from the safe example.
-
-PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Bash:
-
-```bash
-cp .env.example .env
-```
-
-Set the following values in `.env`:
-
-```dotenv
-GROQ_API_KEY=your_groq_api_key
-GROQ_MODEL=openai/gpt-oss-20b
-GEMINI_API_KEY=your_optional_gemini_api_key
-GEMINI_MODEL=gemini-3.1-flash-lite
-```
-
-Groq remains the primary provider. Gemini is an optional, transparent fallback for eligible provider or structured-output failures and is not user-selectable. If `GEMINI_API_KEY` is empty, requests use Groq without fallback.
-
-The `.env` file stores local configuration and secrets. It is ignored by Git and must never be committed. Restart the app after changing `.env`; settings are loaded when the application starts.
-
-## Running
-
-With the virtual environment active, start the app with:
+Set `GROQ_API_KEY` in `.env`. `GEMINI_API_KEY` is optional. Then start ASL:
 
 ```bash
 python run.py
 ```
 
-The launcher prints the local address and normally opens the app in your default browser. Press `Ctrl+C` in the terminal to stop it.
+The launcher runs the app at `http://127.0.0.1:8000` and normally opens a browser. Keep the terminal open while using the app; press `Ctrl+C` to stop it.
 
-## Tests
+## Tests and evaluations
 
-Run the full suite with:
-
-```bash
-pytest
-```
-
-Tests cover lesson activities, Interview Coach, provider failures and fallback, PDF processing, RAG, evaluation, telemetry, API validation, and practical frontend contracts.
-
-## Evaluation
-
-The repository includes an evaluation harness for deterministic checks, live candidate generation, RAG retrieval and grounding, structured LLM-as-a-judge assessment, provider/fallback telemetry, and a combined HTML report. It is separate from the product UI; see [evals/README.md](evals/README.md) for artifacts and details.
+Run the automated test suite without writing bytecode or pytest cache files:
 
 ```bash
-python -m evals.run_all
-
-# Or run each step individually:
-python -m evals.run
-python -m evals.run_live
-python -m evals.run_rag
-python -m evals.run_judge
-python -m evals.report
+python -B -m pytest -p no:cacheprovider
 ```
 
-`run_all` executes the five individual steps in order and stops on the first failure. Live and judge commands use configured providers; automated tests mock provider calls.
+Evaluation commands are documented in [evals/README.md](evals/README.md). Deterministic checks and report generation do not require live model calls; live candidate generation, RAG generation, and judge evaluations use configured providers.
 
-## Request telemetry
+## Documentation
 
-Study, RAG, and Interview Coach requests emit one concise terminal log with request timing and provider/fallback metadata. Telemetry is not persisted, has no dashboard, and excludes prompts, uploaded document content, and generated content.
-
-## Prompt documentation
-
-The current structured-generation behavior is documented in [PROMPTS.md](PROMPTS.md). Executable prompts remain close to their validated models and the shared generation layer in the application code.
-
-## Privacy and document handling
-
-- The application reads uploaded PDFs into memory for the current request and does not persist them. The web framework may use short-lived operating-system temporary buffering while receiving an upload.
-- PDFs, extracted text, and ephemeral Chroma collections are not persisted by this application.
-- Study PDF embeddings are created locally. Retrieved passages are sent to Groq for grounded lesson generation and may be sent to Gemini if an eligible Groq request fails.
-- Job descriptions, resume/CV content, and optional supporting-document text are likewise sent to Groq and may be sent to the optional Gemini fallback.
-- API keys remain server-side and belong only in the local `.env` file; never commit `.env`, keys, personal documents, or real candidate data.
-
-## Screenshots
-
-Screenshots will be added after a final public-data UI review. Any future screenshots should use fictional topics, job descriptions, and candidate documents only.
+- [PROMPTS.md](PROMPTS.md) describes dynamic Study lessons, Study PDF grounding, and Interview Coach prompts.
+- [docs/specs/rag.md](docs/specs/rag.md) and [docs/specs/evaluation.md](docs/specs/evaluation.md) describe the RAG and evaluation scope.
+- [CHANGELOG.md](CHANGELOG.md) distinguishes the released baseline from unreleased development.
 
 ## License
 
 Released under the [MIT License](LICENSE).
-
-## Project status
-
-- Version: `0.1.0`
-- Status: early public MVP
-- Storage: session-only browser state; no database or saved user content
