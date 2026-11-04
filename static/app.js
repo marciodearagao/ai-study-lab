@@ -433,15 +433,19 @@ const officialPathRetry = document.querySelector("#official-paths-retry");
 let officialPathsLoaded = false;
 let officialPathsLoading = false;
 let officialQuizState = null;
+let officialLessonRequestId = 0;
 
 function resetOfficialQuizProgress() {
-  if (!officialQuizState) {
+  if (!officialQuizState || officialQuizState.persisting) {
     return;
   }
   officialQuizState.questionIndex = 0;
   officialQuizState.correctCount = 0;
   officialQuizState.selectedKey = null;
   officialQuizState.submitted = false;
+  officialQuizState.finished = false;
+  officialQuizState.saveStatus.textContent = "";
+  officialQuizState.restart.disabled = false;
   officialQuizState.completion.hidden = true;
   officialQuizState.questionView.hidden = false;
   renderOfficialQuizQuestion();
@@ -511,7 +515,7 @@ function submitOfficialQuizAnswer() {
 
 function advanceOfficialQuiz() {
   const state = officialQuizState;
-  if (!state || !state.submitted) {
+  if (!state || !state.submitted || state.finished) {
     return;
   }
   if (state.questionIndex < state.questions.length - 1) {
@@ -521,9 +525,47 @@ function advanceOfficialQuiz() {
     renderOfficialQuizQuestion();
     return;
   }
+  state.finished = true;
+  state.persisting = true;
   state.questionView.hidden = true;
   state.completion.hidden = false;
   state.score.textContent = `${state.correctCount} / ${state.questions.length} correct`;
+  state.saveStatus.textContent = "Saving your result...";
+  state.restart.disabled = true;
+  saveOfficialQuizAttempt(state);
+}
+
+async function saveOfficialQuizAttempt(state) {
+  try {
+    const response = await fetch("/api/progress/quiz-attempts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        lesson_id: state.lessonId,
+        score: state.correctCount,
+        total_questions: state.questions.length,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error("Quiz result could not be saved.");
+    }
+    if (officialQuizState !== state || state.lessonRequestId !== officialLessonRequestId) {
+      return;
+    }
+    state.saveStatus.textContent = "Result saved successfully. Lesson completed.";
+    state.progressStatus.textContent = "Lesson completed.";
+    state.progressStatus.dataset.completed = "true";
+  } catch (_error) {
+    if (officialQuizState !== state || state.lessonRequestId !== officialLessonRequestId) {
+      return;
+    }
+    state.saveStatus.textContent = "Your score is shown, but the result could not be saved.";
+  } finally {
+    state.persisting = false;
+    if (officialQuizState === state && state.lessonRequestId === officialLessonRequestId) {
+      state.restart.disabled = false;
+    }
+  }
 }
 
 function renderOfficialQuiz(quiz) {
@@ -581,13 +623,17 @@ function renderOfficialQuiz(quiz) {
   completion.className = "official-quiz-completion";
   completion.hidden = true;
   const completedTitle = document.createElement("h6");
-  completedTitle.textContent = "Quiz complete";
+  completedTitle.textContent = "Quiz result";
   const score = document.createElement("p");
+  const saveStatus = document.createElement("p");
+  saveStatus.className = "official-quiz-save-status";
+  saveStatus.setAttribute("role", "status");
+  saveStatus.setAttribute("aria-live", "polite");
   const restart = document.createElement("button");
   restart.type = "button";
   restart.textContent = "Restart quiz";
   restart.addEventListener("click", resetOfficialQuizProgress);
-  completion.append(completedTitle, score, restart);
+  completion.append(completedTitle, score, saveStatus, restart);
   section.append(questionView, completion);
 
   officialQuizState = {
@@ -607,6 +653,10 @@ function renderOfficialQuiz(quiz) {
     submit,
     next,
     score,
+    saveStatus,
+    restart,
+    finished: false,
+    persisting: false,
   };
   renderOfficialQuizQuestion();
   return section;
@@ -711,6 +761,7 @@ function renderLessonMarkdown(markdown) {
 
 function renderOfficialModule(path, module) {
   officialQuizState = null;
+  officialLessonRequestId += 1;
   officialPathContent.replaceChildren();
   const back = document.createElement("button");
   back.type = "button";
@@ -735,6 +786,7 @@ function renderOfficialModule(path, module) {
 
 function showOfficialPathModules(path) {
   officialQuizState = null;
+  officialLessonRequestId += 1;
   officialPathContent.replaceChildren();
   const heading = document.createElement("h4");
   heading.textContent = "Modules";
@@ -760,6 +812,8 @@ function showOfficialPathModules(path) {
 
 function renderOfficialLesson(path, module, lessonItem) {
   officialQuizState = null;
+  officialLessonRequestId += 1;
+  const requestId = officialLessonRequestId;
   officialPathContent.replaceChildren();
   const back = document.createElement("button");
   back.type = "button";
@@ -768,6 +822,11 @@ function renderOfficialLesson(path, module, lessonItem) {
   back.addEventListener("click", () => renderOfficialModule(path, module));
   const heading = document.createElement("h4");
   heading.textContent = lessonItem.title;
+  const progressStatus = document.createElement("p");
+  progressStatus.className = "official-progress-status";
+  progressStatus.setAttribute("role", "status");
+  progressStatus.setAttribute("aria-live", "polite");
+  progressStatus.textContent = "Checking lesson progress...";
   const explanation = document.createElement("article");
   explanation.className = "official-lesson-markdown";
   const markdown = typeof lessonItem.explanation === "string" ? lessonItem.explanation : "";
@@ -778,10 +837,61 @@ function renderOfficialLesson(path, module, lessonItem) {
     empty.textContent = "Lesson content is not available yet.";
     explanation.append(empty);
   }
-  officialPathContent.append(back, heading, explanation, renderOfficialQuiz(lessonItem.quiz));
+  const quiz = renderOfficialQuiz(lessonItem.quiz);
+  if (officialQuizState) {
+    officialQuizState.lessonId = lessonItem.id;
+    officialQuizState.lessonRequestId = requestId;
+    officialQuizState.progressStatus = progressStatus;
+  }
+  officialPathContent.append(back, heading, progressStatus, explanation, quiz);
+  loadOfficialLessonProgress(lessonItem.id, progressStatus, requestId);
+}
+
+async function loadOfficialLessonProgress(lessonId, statusElement, requestId) {
+  const accessRequest = fetch(
+    `/api/progress/lessons/${encodeURIComponent(lessonId)}/access`,
+    { method: "POST" },
+  ).then((response) => {
+    if (!response.ok) {
+      throw new Error("Lesson access could not be recorded.");
+    }
+  });
+  const progressRequest = fetch(
+    `/api/progress/lessons/${encodeURIComponent(lessonId)}`,
+  ).then(async (response) => {
+    if (!response.ok) {
+      throw new Error("Lesson progress could not be loaded.");
+    }
+    return response.json();
+  });
+  const [accessResult, progressResult] = await Promise.allSettled([
+    accessRequest,
+    progressRequest,
+  ]);
+  if (requestId !== officialLessonRequestId || !statusElement.isConnected) {
+    return;
+  }
+  if (statusElement.dataset.completed === "true") {
+    return;
+  }
+  if (progressResult.status === "fulfilled") {
+    statusElement.dataset.completed = String(Boolean(progressResult.value.completed));
+    statusElement.textContent = progressResult.value.completed
+      ? "Lesson completed previously."
+      : "Lesson not completed yet.";
+    if (accessResult.status === "rejected") {
+      statusElement.textContent += " Lesson access could not be recorded.";
+    }
+  } else {
+    statusElement.textContent = accessResult.status === "rejected"
+      ? "Lesson progress could not be loaded or access recorded."
+      : "Lesson progress could not be loaded.";
+  }
 }
 
 async function selectOfficialPath(path, selectedButton) {
+  officialQuizState = null;
+  officialLessonRequestId += 1;
   officialPathDetailTitle.textContent = path.title;
   officialPathDetail.hidden = false;
   officialPathContent.textContent = "Loading learning path...";

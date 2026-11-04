@@ -211,6 +211,7 @@ legend { float: left; padding: 7px 0; color: var(--muted); font-size: 13px; font
 .official-lesson-markdown code { padding: 0.1em 0.3em; border-radius: 4px; background: rgba(40, 94, 80, 0.08); font-family: monospace; }
 .official-lesson-markdown pre code { padding: 0; background: transparent; }
 .official-quiz { margin-top: 25px; padding-top: 18px; border-top: 1px solid rgba(40, 94, 80, 0.16); }
+.official-progress-status, .official-quiz-save-status { color: var(--muted); font-size: 13px; }
 .official-quiz h5 { margin: 0 0 14px; color: var(--green); font-size: 17px; }
 .official-quiz-question { margin: 15px 0; font-size: 19px; line-height: 1.4; }
 .official-quiz-options { grid-template-columns: 1fr; }

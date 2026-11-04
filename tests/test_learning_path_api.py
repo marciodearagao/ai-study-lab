@@ -15,7 +15,7 @@ def test_official_paths_navigation_connects_to_listing_api() -> None:
 
     assert 'href="#official-learning-paths"' in page
     assert 'data-workspace="official-learning-paths"' in page
-    assert 'src="/static/app.js?v=step3c-quiz"' in page
+    assert 'src="/static/app.js?v=step4c-progress"' in page
     assert 'id="official-paths-status" role="status" aria-live="polite"' in page
     assert 'fetch("/api/learning-paths", { signal: controller.signal })' in script
     assert "No official learning paths are available yet." in script
