@@ -430,10 +430,217 @@ const officialPathDetail = document.querySelector("#official-path-detail");
 const officialPathDetailTitle = document.querySelector("#official-path-detail-title");
 const officialPathContent = document.querySelector("#official-path-content");
 const officialPathRetry = document.querySelector("#official-paths-retry");
+const dashboardWorkspace = document.querySelector("#home");
+const dashboardStatus = document.querySelector("#dashboard-status");
+const dashboardRetry = document.querySelector("#dashboard-retry");
+const dashboardContent = document.querySelector("#dashboard-content");
+const dashboardContinueContent = document.querySelector("#dashboard-continue-content");
+const dashboardContinueButton = document.querySelector("#dashboard-continue-button");
+const dashboardStartLink = document.querySelector("#dashboard-start-link");
+const dashboardProgressLabel = document.querySelector("#dashboard-progress-label");
+const dashboardProgressBar = document.querySelector("#dashboard-progress-bar");
+const dashboardProgressPercentage = document.querySelector("#dashboard-progress-percentage");
+const dashboardPathList = document.querySelector("#dashboard-path-list");
+const dashboardActivityList = document.querySelector("#dashboard-activity-list");
 let officialPathsLoaded = false;
 let officialPathsLoading = false;
 let officialQuizState = null;
 let officialLessonRequestId = 0;
+let officialSelectedPathId = null;
+let dashboardSummary = null;
+let dashboardRequestId = 0;
+let dashboardController = null;
+
+function isValidDashboardSummary(summary) {
+  return summary
+    && Number.isInteger(summary.total_lessons)
+    && Number.isInteger(summary.completed_lessons)
+    && Number.isFinite(summary.completion_percentage)
+    && (summary.most_recently_accessed_lesson === null
+      || (
+        typeof summary.most_recently_accessed_lesson.id === "string"
+        && typeof summary.most_recently_accessed_lesson.title === "string"
+        && typeof summary.most_recently_accessed_lesson.learning_path_id === "string"
+      ))
+    && Array.isArray(summary.learning_paths)
+    && summary.learning_paths.every((path) => (
+      typeof path.id === "string"
+      && typeof path.title === "string"
+      && Number.isInteger(path.total_lessons)
+      && Number.isInteger(path.completed_lessons)
+      && Number.isFinite(path.completion_percentage)
+    ))
+    && Array.isArray(summary.recent_quiz_attempts)
+    && summary.recent_quiz_attempts.every((attempt) => (
+      typeof attempt.lesson_id === "string"
+      && typeof attempt.lesson_title === "string"
+      && Number.isInteger(attempt.score)
+      && Number.isInteger(attempt.total_questions)
+      && typeof attempt.completed_at === "string"
+    ));
+}
+
+function formatDashboardDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return new Intl.DateTimeFormat("en", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function renderDashboardSummary(summary) {
+  const recentLesson = summary.most_recently_accessed_lesson;
+  dashboardContinueContent.replaceChildren();
+  if (recentLesson) {
+    const title = document.createElement("h4");
+    title.textContent = recentLesson.title;
+    const path = summary.learning_paths.find(
+      (item) => item.id === recentLesson.learning_path_id,
+    );
+    const pathTitle = document.createElement("p");
+    pathTitle.textContent = path ? path.title : "Official Learning Path";
+    dashboardContinueContent.append(title, pathTitle);
+    dashboardContinueButton.hidden = false;
+    dashboardStartLink.hidden = true;
+  } else {
+    const empty = document.createElement("p");
+    empty.className = "dashboard-empty";
+    empty.textContent = "No recent lesson yet. Choose an official learning path to get started.";
+    dashboardContinueContent.append(empty);
+    dashboardContinueButton.hidden = true;
+    dashboardStartLink.hidden = false;
+  }
+
+  dashboardProgressLabel.textContent = `${summary.completed_lessons} of ${summary.total_lessons} lessons completed`;
+  dashboardProgressBar.value = Math.max(
+    0,
+    Math.min(100, summary.completion_percentage),
+  );
+  dashboardProgressPercentage.textContent = `${summary.completion_percentage}%`;
+
+  dashboardPathList.replaceChildren();
+  if (summary.learning_paths.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "dashboard-empty";
+    empty.textContent = "No official learning paths are available yet.";
+    dashboardPathList.append(empty);
+  } else {
+    summary.learning_paths.forEach((path) => {
+      const item = document.createElement("article");
+      item.className = "dashboard-path-item";
+      const title = document.createElement("h4");
+      title.textContent = path.title;
+      const progressText = document.createElement("p");
+      progressText.textContent = `${path.completed_lessons} of ${path.total_lessons} lessons · ${path.completion_percentage}%`;
+      const progress = document.createElement("progress");
+      progress.max = 100;
+      progress.value = Math.max(0, Math.min(100, path.completion_percentage));
+      progress.setAttribute("aria-label", `${path.title} completion`);
+      const open = document.createElement("button");
+      open.type = "button";
+      open.textContent = "Open learning path";
+      open.addEventListener("click", () => navigateToOfficialPath(path.id, path.title));
+      item.append(title, progressText, progress, open);
+      dashboardPathList.append(item);
+    });
+  }
+
+  dashboardActivityList.replaceChildren();
+  if (summary.recent_quiz_attempts.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "dashboard-empty";
+    empty.textContent = "No quiz attempts yet. Complete a lesson quiz to see activity here.";
+    dashboardActivityList.append(empty);
+  } else {
+    summary.recent_quiz_attempts.slice(0, 5).forEach((attempt) => {
+      const item = document.createElement("li");
+      const title = document.createElement("strong");
+      title.textContent = attempt.lesson_title;
+      const score = document.createElement("span");
+      score.textContent = `${attempt.score} / ${attempt.total_questions} correct · `;
+      const date = document.createElement("time");
+      date.dateTime = attempt.completed_at;
+      date.textContent = formatDashboardDate(attempt.completed_at);
+      item.append(title, score, date);
+      dashboardActivityList.append(item);
+    });
+  }
+}
+
+function dashboardRequestIsCurrent(requestId) {
+  return requestId === dashboardRequestId && !dashboardWorkspace.hidden;
+}
+
+async function loadDashboardSummary() {
+  dashboardRequestId += 1;
+  const requestId = dashboardRequestId;
+  if (dashboardController) {
+    dashboardController.abort();
+  }
+  const controller = new AbortController();
+  dashboardController = controller;
+  let timeoutId;
+  dashboardStatus.textContent = "Loading dashboard...";
+  dashboardRetry.hidden = true;
+  dashboardContent.hidden = true;
+  dashboardContent.setAttribute("aria-busy", "true");
+
+  try {
+    timeoutId = window.setTimeout(() => controller.abort(), 10000);
+    const response = await fetch("/api/dashboard/summary", { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error("Dashboard summary could not be loaded.");
+    }
+    const summary = await response.json();
+    if (!isValidDashboardSummary(summary)) {
+      throw new Error("Dashboard summary response is invalid.");
+    }
+    if (!dashboardRequestIsCurrent(requestId)) {
+      return;
+    }
+    dashboardSummary = summary;
+    renderDashboardSummary(summary);
+    dashboardStatus.textContent = "";
+    dashboardContent.hidden = false;
+  } catch (_error) {
+    if (!dashboardRequestIsCurrent(requestId)) {
+      return;
+    }
+    dashboardStatus.textContent = "Dashboard could not be loaded. Please try again.";
+    dashboardRetry.hidden = false;
+  } finally {
+    window.clearTimeout(timeoutId);
+    if (requestId === dashboardRequestId) {
+      dashboardController = null;
+      dashboardContent.removeAttribute("aria-busy");
+    }
+  }
+}
+
+function navigateToOfficialPath(pathId, pathTitle, lessonId = null) {
+  window.location.hash = "#official-learning-paths";
+  showWorkspace("official-learning-paths");
+  selectOfficialPath({ id: pathId, title: pathTitle }, null, lessonId);
+}
+
+dashboardRetry.addEventListener("click", loadDashboardSummary);
+dashboardContinueButton.addEventListener("click", () => {
+  const lesson = dashboardSummary?.most_recently_accessed_lesson;
+  if (!lesson) {
+    return;
+  }
+  const path = dashboardSummary.learning_paths.find(
+    (item) => item.id === lesson.learning_path_id,
+  );
+  navigateToOfficialPath(
+    lesson.learning_path_id,
+    path ? path.title : "Official Learning Path",
+    lesson.id,
+  );
+});
 
 function resetOfficialQuizProgress() {
   if (!officialQuizState || officialQuizState.persisting) {
@@ -889,14 +1096,18 @@ async function loadOfficialLessonProgress(lessonId, statusElement, requestId) {
   }
 }
 
-async function selectOfficialPath(path, selectedButton) {
+async function selectOfficialPath(path, selectedButton, targetLessonId = null) {
   officialQuizState = null;
   officialLessonRequestId += 1;
+  officialSelectedPathId = path.id;
   officialPathDetailTitle.textContent = path.title;
   officialPathDetail.hidden = false;
   officialPathContent.textContent = "Loading learning path...";
   officialPathList.querySelectorAll(".official-path-choice").forEach((button) => {
-    button.setAttribute("aria-pressed", String(button === selectedButton));
+    button.setAttribute(
+      "aria-pressed",
+      String(button === selectedButton || button.dataset.pathId === path.id),
+    );
   });
   try {
     const response = await fetch(`/api/learning-paths/${encodeURIComponent(path.id)}`);
@@ -908,6 +1119,16 @@ async function selectOfficialPath(path, selectedButton) {
       !Array.isArray(module.lessons)
     ))) {
       throw new Error("Learning path response is invalid.");
+    }
+    if (targetLessonId) {
+      const module = detail.modules.find((item) => (
+        item.lessons.some((lesson) => lesson.id === targetLessonId)
+      ));
+      const lesson = module?.lessons.find((item) => item.id === targetLessonId);
+      if (module && lesson) {
+        renderOfficialLesson(detail, module, lesson);
+        return;
+      }
     }
     showOfficialPathModules(detail);
   } catch (_error) {
@@ -956,7 +1177,8 @@ async function loadOfficialLearningPaths() {
       const button = document.createElement("button");
       button.className = "official-path-choice";
       button.type = "button";
-      button.setAttribute("aria-pressed", "false");
+      button.dataset.pathId = path.id;
+      button.setAttribute("aria-pressed", String(path.id === officialSelectedPathId));
       button.setAttribute("aria-controls", "official-path-detail");
 
       const title = document.createElement("span");
@@ -988,6 +1210,11 @@ function showWorkspace(name) {
   const selected = workspaces.find((workspace) => workspace.dataset.workspace === name)
     || document.querySelector('[data-workspace="home"]');
 
+  if (selected.dataset.workspace !== "home" && dashboardController) {
+    dashboardRequestId += 1;
+    dashboardController.abort();
+    dashboardController = null;
+  }
   if (selected.dataset.workspace !== "official-learning-paths") {
     resetOfficialQuizProgress();
   }
@@ -1006,6 +1233,9 @@ function showWorkspace(name) {
   });
   if (selected.dataset.workspace === "official-learning-paths") {
     loadOfficialLearningPaths();
+  }
+  if (selected.dataset.workspace === "home") {
+    loadDashboardSummary();
   }
   window.scrollTo(0, 0);
 }

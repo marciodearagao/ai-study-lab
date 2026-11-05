@@ -327,6 +327,115 @@ def record_lesson_access(lesson_id: str) -> dict[str, str]:
     return {"lesson_id": lesson_id, "last_accessed_at": last_accessed_at}
 
 
+@app.get("/api/dashboard/summary")
+def get_dashboard_summary() -> dict[str, object]:
+    try:
+        paths = load_learning_paths()
+    except ContentLoadError as error:
+        raise HTTPException(
+            status_code=500, detail="Learning content is unavailable."
+        ) from error
+
+    lesson_details: dict[str, dict[str, str]] = {}
+    path_lessons: dict[str, list[str]] = {}
+    for path in paths:
+        lessons = [
+            lesson
+            for module in path["modules"]
+            for lesson in module["lessons"]
+        ]
+        path_lessons[path["id"]] = [lesson["id"] for lesson in lessons]
+        for lesson in lessons:
+            lesson_details[lesson["id"]] = {
+                "title": lesson["title"],
+                "learning_path_id": path["id"],
+            }
+
+    connection = None
+    try:
+        connection = progress_database_connection()
+        completed_rows = connection.execute(
+            "SELECT lesson_id FROM lesson_progress WHERE completed = ?", (1,)
+        ).fetchall()
+        access_rows = connection.execute(
+            "SELECT lesson_id, last_accessed_at FROM lesson_progress "
+            "WHERE last_accessed_at IS NOT NULL "
+            "ORDER BY last_accessed_at DESC, lesson_id ASC"
+        ).fetchall()
+        attempt_rows = connection.execute(
+            "SELECT lesson_id, score, total_questions, completed_at "
+            "FROM quiz_attempts ORDER BY completed_at DESC, id DESC"
+        ).fetchall()
+    except (sqlite3.Error, OSError) as error:
+        raise HTTPException(
+            status_code=500, detail="Progress storage is unavailable."
+        ) from error
+    finally:
+        if connection is not None:
+            connection.close()
+
+    lesson_ids = set(lesson_details)
+    completed_ids = {row[0] for row in completed_rows if row[0] in lesson_ids}
+    total_lessons = len(lesson_details)
+    completed_lessons = len(completed_ids)
+    most_recent_lesson = next(
+        (row[0] for row in access_rows if row[0] in lesson_ids), None
+    )
+
+    path_summaries = []
+    for path in paths:
+        lesson_ids_for_path = path_lessons[path["id"]]
+        path_total = len(lesson_ids_for_path)
+        path_completed = sum(lesson_id in completed_ids for lesson_id in lesson_ids_for_path)
+        path_summaries.append(
+            {
+                "id": path["id"],
+                "title": path["title"],
+                "total_lessons": path_total,
+                "completed_lessons": path_completed,
+                "completion_percentage": (
+                    round(path_completed * 100 / path_total, 2) if path_total else 0
+                ),
+            }
+        )
+
+    recent_attempts = []
+    for lesson_id, score, total_questions, completed_at in attempt_rows:
+        lesson = lesson_details.get(lesson_id)
+        if lesson is None:
+            continue
+        recent_attempts.append(
+            {
+                "lesson_id": lesson_id,
+                "lesson_title": lesson["title"],
+                "score": score,
+                "total_questions": total_questions,
+                "completed_at": completed_at,
+            }
+        )
+        if len(recent_attempts) == 5:
+            break
+
+    return {
+        "total_lessons": total_lessons,
+        "completed_lessons": completed_lessons,
+        "completion_percentage": (
+            round(completed_lessons * 100 / total_lessons, 2) if total_lessons else 0
+        ),
+        "most_recently_accessed_lesson": (
+            {
+                "id": most_recent_lesson,
+                "title": lesson_details[most_recent_lesson]["title"],
+                "learning_path_id": lesson_details[most_recent_lesson]["learning_path_id"],
+            }
+            if most_recent_lesson
+            else None
+        ),
+        "learning_paths": path_summaries,
+        "recent_quiz_attempts": recent_attempts,
+    }
+
+
 @app.post("/api/lessons", response_model=Lesson)
 async def create_lesson(payload: LessonRequest) -> Lesson:
     try:

@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Newsreader:opsz,wght@6..72,600&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/styles.css">
-  <script src="/static/app.js?v=step4c-progress" defer></script>
+  <script src="/static/app.js?v=step4d2-dashboard" defer></script>
   </head>
   <body>
     <header class="site-header">
@@ -228,11 +228,50 @@
         <div class="section-heading">
           <div>
             <span class="section-number">01</span>
-            <h2 id="explore-title">Explore</h2>
+            <h2 id="explore-title">Dashboard</h2>
           </div>
-          <p>Study with AI or prepare for your next role.</p>
+          <p>Your official learning activity at a glance.</p>
         </div>
 
+        <div class="dashboard-status-row">
+          <p id="dashboard-status" role="status" aria-live="polite">Loading dashboard...</p>
+          <button class="dashboard-retry" id="dashboard-retry" type="button" hidden>Try again</button>
+        </div>
+
+        <div class="dashboard-content" id="dashboard-content" aria-busy="true" hidden>
+          <div class="dashboard-primary-grid">
+            <section class="dashboard-panel continue-panel" aria-labelledby="continue-title">
+              <span class="lesson-kicker">Pick up where you left off</span>
+              <h3 id="continue-title">Continue Learning</h3>
+              <div id="dashboard-continue-content"></div>
+              <button class="dashboard-action" id="dashboard-continue-button" type="button" hidden>Continue lesson</button>
+              <a class="dashboard-action dashboard-link" id="dashboard-start-link" href="#official-learning-paths" data-workspace-link hidden>Explore Official Learning Paths</a>
+            </section>
+
+            <section class="dashboard-panel overall-panel" aria-labelledby="overall-progress-title">
+              <span class="lesson-kicker">Your progress</span>
+              <h3 id="overall-progress-title">Overall Progress</h3>
+              <p class="dashboard-progress-label" id="dashboard-progress-label"></p>
+              <progress id="dashboard-progress-bar" max="100" value="0" aria-label="Overall lesson completion"></progress>
+              <strong id="dashboard-progress-percentage">0%</strong>
+            </section>
+          </div>
+
+          <div class="dashboard-secondary-grid">
+            <section class="dashboard-panel" aria-labelledby="dashboard-paths-title">
+              <h3 id="dashboard-paths-title">Official Learning Paths</h3>
+              <div class="dashboard-path-list" id="dashboard-path-list"></div>
+            </section>
+
+            <section class="dashboard-panel" aria-labelledby="dashboard-activity-title">
+              <h3 id="dashboard-activity-title">Recent Activity</h3>
+              <ol class="dashboard-activity-list" id="dashboard-activity-list"></ol>
+            </section>
+          </div>
+        </div>
+
+        <section class="dashboard-explore" aria-labelledby="explore-workspaces-title">
+          <h3 id="explore-workspaces-title">Explore Workspaces</h3>
         <div class="explore-grid">
           <a class="explore-card study-card" href="#study" data-workspace-link>
             <span class="card-icon book-icon" aria-hidden="true"></span>
@@ -250,6 +289,7 @@
             <span class="status">Coming later</span>
           </a>
         </div>
+        </section>
       </section>
     </main>
 

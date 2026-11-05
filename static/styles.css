@@ -237,6 +237,39 @@ legend { float: left; padding: 7px 0; color: var(--muted); font-size: 13px; font
 .muted-card { color: #65736d; }
 
 .workspace-home { min-height: calc(100vh - 140px); padding: 48px 0 64px; display: flex; flex-direction: column; justify-content: flex-start; }
+.dashboard-status-row { min-height: 36px; margin: -11px 0 14px; display: flex; align-items: center; gap: 12px; }
+.dashboard-status-row p { margin: 0; color: var(--muted); font-size: 14px; }
+.dashboard-retry { padding: 8px 12px; border: 0; border-radius: 8px; color: white; background: var(--green); font-weight: 700; cursor: pointer; }
+.dashboard-retry[hidden], .dashboard-content[hidden] { display: none; }
+.dashboard-content { display: grid; gap: 16px; }
+.dashboard-primary-grid, .dashboard-secondary-grid { display: grid; align-items: stretch; gap: 16px; }
+.dashboard-primary-grid { grid-template-columns: minmax(0, 1.25fr) minmax(250px, 0.75fr); }
+.dashboard-secondary-grid { grid-template-columns: 1fr 1fr; }
+.dashboard-panel { min-width: 0; padding: 23px 25px; border: 1px solid var(--line); border-radius: 15px; background: rgba(255, 254, 249, 0.82); }
+.dashboard-panel h3, .dashboard-explore h3 { margin: 4px 0 13px; font-family: "Newsreader", serif; font-size: 23px; }
+.continue-panel { border-color: transparent; background: var(--green-soft); }
+.continue-panel p, .overall-panel p { margin: 0 0 13px; color: var(--muted); line-height: 1.5; }
+.dashboard-action { width: fit-content; margin-top: 8px; padding: 10px 14px; display: inline-block; border: 0; border-radius: 9px; color: white; background: var(--green); font: inherit; font-size: 14px; font-weight: 700; text-decoration: none; cursor: pointer; }
+.dashboard-action[hidden] { display: none; }
+.dashboard-action:focus-visible, .dashboard-retry:focus-visible, .dashboard-path-item button:focus-visible { outline: 2px solid var(--clay); outline-offset: 3px; }
+.overall-panel { position: relative; }
+.dashboard-progress-label { margin-bottom: 5px !important; }
+.overall-panel progress, .dashboard-path-item progress { width: 100%; height: 12px; accent-color: var(--green); }
+.overall-panel > strong { display: block; margin-top: 5px; color: var(--green); font-size: 23px; }
+.dashboard-path-list { display: grid; gap: 13px; }
+.dashboard-path-item { padding-top: 12px; border-top: 1px solid var(--line); }
+.dashboard-path-item:first-child { padding-top: 0; border-top: 0; }
+.dashboard-path-item h4 { margin: 0 0 4px; color: var(--green); font-size: 15px; }
+.dashboard-path-item p { margin: 0 0 6px; color: var(--muted); font-size: 13px; }
+.dashboard-path-item button { margin-top: 6px; padding: 0; border: 0; color: var(--green); background: transparent; font: inherit; font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.dashboard-empty { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.dashboard-activity-list { margin: 0; padding-left: 20px; display: grid; gap: 13px; }
+.dashboard-activity-list li { padding-left: 3px; color: var(--ink); }
+.dashboard-activity-list li::marker { color: var(--clay); font-weight: 700; }
+.dashboard-activity-list strong { display: block; font-size: 14px; }
+.dashboard-activity-list span, .dashboard-activity-list time { color: var(--muted); font-size: 12px; }
+.dashboard-explore { margin-top: 22px; }
+.dashboard-explore h3 { margin-bottom: 12px; }
 .progress-workspace { min-height: calc(100vh - 82px); display: grid; place-items: center; padding: 70px 0 100px; }
 .coming-later-panel { width: 100%; padding: clamp(35px, 7vw, 75px); border-left: 4px solid var(--clay); border-radius: 5px 18px 18px 5px; background: var(--green-soft); }
 .coming-later-panel h1 { margin-bottom: 8px; }
@@ -271,6 +304,8 @@ footer { width: min(1180px, calc(100% - 48px)); margin: 0 auto; padding: 25px 0 
   .official-paths { padding: 55px 0 70px; }
   .official-path-layout { grid-template-columns: 1fr; }
   .official-path-choice { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .dashboard-primary-grid, .dashboard-secondary-grid { grid-template-columns: 1fr; }
+  .dashboard-panel { padding: 20px; }
   .explore-grid { grid-template-columns: 1fr; }
   .explore-card { min-height: 190px; }
   footer { width: min(100% - 30px, 1180px); }

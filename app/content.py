@@ -34,8 +34,8 @@ def _object(value: Any, label: str) -> dict[str, Any]:
 
 
 def _identifier_list(value: Any, label: str) -> list[str]:
-    if not isinstance(value, list) or not value:
-        raise ContentLoadError(f"{label} must be a nonempty list of identifiers.")
+    if not isinstance(value, list):
+        raise ContentLoadError(f"{label} must be a list of identifiers.")
     identifiers = [_identifier(item, label) for item in value]
     if len(set(identifiers)) != len(identifiers):
         raise ContentLoadError(f"{label} contains duplicate identifiers.")
