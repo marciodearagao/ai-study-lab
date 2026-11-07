@@ -447,6 +447,7 @@ let officialPathsLoading = false;
 let officialQuizState = null;
 let officialLessonRequestId = 0;
 let officialSelectedPathId = null;
+let officialPathRequestId = 0;
 let dashboardSummary = null;
 let dashboardRequestId = 0;
 let dashboardController = null;
@@ -743,10 +744,14 @@ function advanceOfficialQuiz() {
 }
 
 async function saveOfficialQuizAttempt(state) {
+  const controller = new AbortController();
+  let timeoutId;
   try {
+    timeoutId = window.setTimeout(() => controller.abort(), 10000);
     const response = await fetch("/api/progress/quiz-attempts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
       body: JSON.stringify({
         lesson_id: state.lessonId,
         score: state.correctCount,
@@ -766,8 +771,9 @@ async function saveOfficialQuizAttempt(state) {
     if (officialQuizState !== state || state.lessonRequestId !== officialLessonRequestId) {
       return;
     }
-    state.saveStatus.textContent = "Your score is shown, but the result could not be saved.";
+    state.saveStatus.textContent = "Your score is shown, but we could not confirm whether it was saved. Check lesson progress before submitting again.";
   } finally {
+    window.clearTimeout(timeoutId);
     state.persisting = false;
     if (officialQuizState === state && state.lessonRequestId === officialLessonRequestId) {
       state.restart.disabled = false;
@@ -1055,22 +1061,39 @@ function renderOfficialLesson(path, module, lessonItem) {
 }
 
 async function loadOfficialLessonProgress(lessonId, statusElement, requestId) {
-  const accessRequest = fetch(
-    `/api/progress/lessons/${encodeURIComponent(lessonId)}/access`,
-    { method: "POST" },
-  ).then((response) => {
-    if (!response.ok) {
-      throw new Error("Lesson access could not be recorded.");
+  const accessController = new AbortController();
+  let accessTimeoutId;
+  const accessRequest = (async () => {
+    try {
+      accessTimeoutId = window.setTimeout(() => accessController.abort(), 10000);
+      const response = await fetch(
+        `/api/progress/lessons/${encodeURIComponent(lessonId)}/access`,
+        { method: "POST", signal: accessController.signal },
+      );
+      if (!response.ok) {
+        throw new Error("Lesson access could not be recorded.");
+      }
+    } finally {
+      window.clearTimeout(accessTimeoutId);
     }
-  });
-  const progressRequest = fetch(
-    `/api/progress/lessons/${encodeURIComponent(lessonId)}`,
-  ).then(async (response) => {
-    if (!response.ok) {
-      throw new Error("Lesson progress could not be loaded.");
+  })();
+  const progressController = new AbortController();
+  let progressTimeoutId;
+  const progressRequest = (async () => {
+    try {
+      progressTimeoutId = window.setTimeout(() => progressController.abort(), 10000);
+      const response = await fetch(
+        `/api/progress/lessons/${encodeURIComponent(lessonId)}`,
+        { signal: progressController.signal },
+      );
+      if (!response.ok) {
+        throw new Error("Lesson progress could not be loaded.");
+      }
+      return await response.json();
+    } finally {
+      window.clearTimeout(progressTimeoutId);
     }
-    return response.json();
-  });
+  })();
   const [accessResult, progressResult] = await Promise.allSettled([
     accessRequest,
     progressRequest,
@@ -1097,12 +1120,15 @@ async function loadOfficialLessonProgress(lessonId, statusElement, requestId) {
 }
 
 async function selectOfficialPath(path, selectedButton, targetLessonId = null) {
+  const requestId = ++officialPathRequestId;
   officialQuizState = null;
   officialLessonRequestId += 1;
   officialSelectedPathId = path.id;
   officialPathDetailTitle.textContent = path.title;
   officialPathDetail.hidden = false;
   officialPathContent.textContent = "Loading learning path...";
+  const controller = new AbortController();
+  let timeoutId;
   officialPathList.querySelectorAll(".official-path-choice").forEach((button) => {
     button.setAttribute(
       "aria-pressed",
@@ -1110,11 +1136,18 @@ async function selectOfficialPath(path, selectedButton, targetLessonId = null) {
     );
   });
   try {
-    const response = await fetch(`/api/learning-paths/${encodeURIComponent(path.id)}`);
+    timeoutId = window.setTimeout(() => controller.abort(), 10000);
+    const response = await fetch(
+      `/api/learning-paths/${encodeURIComponent(path.id)}`,
+      { signal: controller.signal },
+    );
     if (!response.ok) {
       throw new Error("Learning path could not be loaded.");
     }
     const detail = await response.json();
+    if (requestId !== officialPathRequestId || officialSelectedPathId !== path.id) {
+      return;
+    }
     if (!Array.isArray(detail.modules) || detail.modules.some((module) => (
       !Array.isArray(module.lessons)
     ))) {
@@ -1132,10 +1165,15 @@ async function selectOfficialPath(path, selectedButton, targetLessonId = null) {
     }
     showOfficialPathModules(detail);
   } catch (_error) {
+    if (requestId !== officialPathRequestId || officialSelectedPathId !== path.id) {
+      return;
+    }
     officialPathContent.replaceChildren();
     const error = document.createElement("p");
     error.textContent = "This learning path could not be loaded. Please select it again to retry.";
     officialPathContent.append(error);
+  } finally {
+    window.clearTimeout(timeoutId);
   }
 }
 

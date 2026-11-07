@@ -8,6 +8,9 @@
 - Added Official Learning Paths using Markdown explanations and JSON metadata and quizzes.
 - Added content validation and read-only FastAPI endpoints for listing and retrieving learning paths.
 - Added frontend navigation through paths, modules, and lessons, safe Markdown display, and interactive lesson quizzes.
+- Added local SQLite persistence for official lesson completion, lesson access timestamps, and completed quiz attempt history.
+- Added progress API endpoints for recording completed quiz attempts, retrieving lesson progress, and recording lesson access.
+- Added the Dashboard Summary API and a basic responsive Home dashboard with Continue Learning, Overall Progress, Official Learning Paths, and Recent Activity.
 
 ## 0.1.0 — Released
 

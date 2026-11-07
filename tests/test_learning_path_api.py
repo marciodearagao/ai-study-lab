@@ -8,6 +8,13 @@ from app.content import load_learning_paths
 client = TestClient(app_main.app)
 
 
+def official_path_selection_source() -> str:
+    script = client.get("/static/app.js").text
+    return script.split("async function selectOfficialPath(", 1)[1].split(
+        "async function loadOfficialLearningPaths(", 1
+    )[0]
+
+
 def test_official_paths_navigation_connects_to_listing_api() -> None:
     page = client.get("/").text
     script = client.get("/static/app.js").text
@@ -21,13 +28,54 @@ def test_official_paths_navigation_connects_to_listing_api() -> None:
     assert "No official learning paths are available yet." in script
     assert "Learning paths could not be loaded. Please try again." in script
     assert "module.title" in script
-    assert 'fetch(`/api/learning-paths/${encodeURIComponent(path.id)}`)' in script
+    assert 'fetch(\n      `/api/learning-paths/${encodeURIComponent(path.id)}`,' in script
+    assert "{ signal: controller.signal }" in script
     assert "renderOfficialModule" in script
     assert "renderOfficialLesson" in script
     assert "Back to modules" in script
     assert "Lesson content is not available yet." in script
     assert "This learning path could not be loaded." in script
     assert paths[0]["modules"][0]["title"] == "Introduction"
+
+
+def test_rapid_path_switching_invalidates_older_detail_responses() -> None:
+    script = client.get("/static/app.js").text
+    selection = official_path_selection_source()
+
+    assert "let officialPathRequestId = 0" in script
+    assert "const requestId = ++officialPathRequestId" in selection
+    assert selection.index("const requestId = ++officialPathRequestId") < selection.index(
+        "fetch(\n      `/api/learning-paths/${encodeURIComponent(path.id)}`,"
+    )
+    assert "officialSelectedPathId = path.id" in selection
+
+
+def test_path_b_response_wins_when_it_arrives_before_path_a() -> None:
+    selection = official_path_selection_source()
+    response_read = selection.index("const detail = await response.json()")
+    stale_guard = selection.index(
+        "if (requestId !== officialPathRequestId || officialSelectedPathId !== path.id)"
+    )
+    render_modules = selection.index("showOfficialPathModules(detail)")
+
+    assert response_read < stale_guard < render_modules
+    assert "renderOfficialLesson(detail, module, lesson)" in selection
+
+
+def test_outdated_path_request_failure_cannot_replace_newer_content() -> None:
+    selection = official_path_selection_source()
+    error_handler = selection.index("} catch (_error) {")
+    stale_guard = selection.index(
+        "if (requestId !== officialPathRequestId || officialSelectedPathId !== path.id)",
+        error_handler,
+    )
+    clear_content = selection.index("officialPathContent.replaceChildren()", error_handler)
+    show_error = selection.index("This learning path could not be loaded.", error_handler)
+
+    assert error_handler < stale_guard < clear_content < show_error
+    assert "button.addEventListener(\"click\", () => selectOfficialPath(path, button))" in client.get(
+        "/static/app.js"
+    ).text
 
 
 def test_pending_learning_path_request_times_out_and_unlocks_retry() -> None:
@@ -65,6 +113,23 @@ def test_learning_path_detail_includes_explanation_and_quiz() -> None:
     assert len(lesson["quiz"]) == 4
     assert list(lesson["quiz"][0]["options"]) == ["A", "B", "C", "D"]
     assert lesson["quiz"][0]["correct_answer"] == "A"
+
+
+def test_learning_path_detail_timeout_preserves_stale_response_guards() -> None:
+    script = client.get("/static/app.js").text
+    selection = script.split("async function selectOfficialPath(", 1)[1].split(
+        "async function loadOfficialLearningPaths(", 1
+    )[0]
+
+    assert "new AbortController()" in selection
+    assert "window.setTimeout(() => controller.abort(), 10000)" in selection
+    assert "{ signal: controller.signal }" in selection
+    assert "window.clearTimeout(timeoutId)" in selection
+    assert selection.count(
+        "requestId !== officialPathRequestId || officialSelectedPathId !== path.id"
+    ) == 2
+    assert '"Loading learning path..."' in selection
+    assert "This learning path could not be loaded." in selection
 
 
 def test_official_lesson_markdown_renderer_uses_safe_dom_nodes() -> None:
