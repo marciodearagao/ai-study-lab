@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Prototype A: a persistent course sidebar for AI Study Lab.">
+    <title>Prototype A — Persistent Course Sidebar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Newsreader:opsz,wght@6..72,600&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="prototype.css">
+    <link rel="stylesheet" href="prototype-a.css">
+    <script src="prototype-a.js" defer></script>
+  </head>
+  <body class="prototype-a">
+    <header class="site-header">
+      <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">A</span><span>AI Study Lab</span></a>
+      <nav aria-label="Primary navigation">
+        <a class="nav-link" href="index.html">Home</a>
+        <a class="nav-link" href="#study">Study</a>
+        <a class="nav-link active" href="#course" aria-current="page">Official Learning Paths</a>
+        <a class="nav-link" href="#coach">Interview Coach</a>
+      </nav>
+    </header>
+
+    <main class="course-page" id="course">
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="#course">Official Learning Paths</a></li>
+          <li><a href="#course">AI Fundamentals</a></li>
+          <li><a href="#course">Introduction</a></li>
+          <li><span id="breadcrumb-lesson" aria-current="page">What Is Artificial Intelligence?</span></li>
+        </ol>
+      </nav>
+
+      <div class="course-layout sidebar-layout">
+        <aside class="course-sidebar" aria-label="Course outline">
+          <details class="course-disclosure" id="course-content">
+            <summary>
+              <span>Course Content</span>
+              <span class="summary-progress">AI Fundamentals · 1 of 6 lessons complete</span>
+            </summary>
+            <div class="sidebar-content">
+              <h1 class="sidebar-title">AI Fundamentals</h1>
+              <p class="sidebar-progress-label">Your learning path</p>
+              <div class="progress-row">
+                <progress max="6" value="1" aria-label="Course completion: 1 of 6 lessons"></progress>
+                <span>17%</span>
+              </div>
+              <details class="module-group" open>
+                <summary><span>1. Introduction</span><span class="module-count">3 lessons</span></summary>
+                <ul class="lesson-list">
+                  <li><button class="lesson-link completed" type="button" data-lesson="welcome"><span class="lesson-marker" aria-hidden="true">✓</span><span>Welcome to the course</span></button></li>
+                  <li><button class="lesson-link current" type="button" data-lesson="what-is-ai" aria-current="page"><span class="lesson-marker" aria-hidden="true">●</span><span>What Is Artificial Intelligence?</span></button></li>
+                  <li><button class="lesson-link" type="button" data-lesson="ai-around-us"><span class="lesson-marker" aria-hidden="true">○</span><span>AI Around Us</span></button></li>
+                </ul>
+              </details>
+              <details class="module-group">
+                <summary><span>2. How AI Learns</span><span class="module-count">3 lessons</span></summary>
+                <ul class="lesson-list">
+                  <li><button class="lesson-link" type="button" data-lesson="learning-examples"><span class="lesson-marker" aria-hidden="true">○</span><span>Learning from Examples</span></button></li>
+                  <li><button class="lesson-link" type="button" data-lesson="patterns"><span class="lesson-marker" aria-hidden="true">○</span><span>Patterns and Predictions</span></button></li>
+                  <li><button class="lesson-link" type="button" data-lesson="limitations"><span class="lesson-marker" aria-hidden="true">○</span><span>What AI Can Get Wrong</span></button></li>
+                </ul>
+              </details>
+            </div>
+          </details>
+        </aside>
+
+        <article class="lesson-column" id="lesson" aria-labelledby="lesson-title">
+          <div class="lesson-meta">
+            <p class="lesson-context"><span id="lesson-module">Introduction</span><span aria-hidden="true">·</span><span id="lesson-position">Lesson 2 of 6</span></p>
+            <p class="completion-note"><span class="completion-dot" aria-hidden="true"></span> In progress</p>
+          </div>
+          <h2 id="lesson-title">What Is Artificial Intelligence?</h2>
+          <div class="lesson-copy" id="lesson-copy">
+            <p>Artificial intelligence, or AI, is software designed to do tasks that usually need some human intelligence. These tasks can include understanding words, recognizing pictures, making suggestions, or finding patterns in information.</p>
+            <h3>Learning from examples</h3>
+            <p>Some AI systems learn patterns from examples. After seeing many labeled pictures of cats and dogs, for example, a system can learn to sort new pictures. It uses patterns in the examples; it does not learn exactly like a person.</p>
+            <p>AI is useful in voice assistants, translation apps, and recommendation systems. It can also make mistakes, so people should check important results.</p>
+          </div>
+
+          <section class="quiz-section" aria-labelledby="quiz-title">
+            <div class="quiz-heading">
+              <div><p class="eyebrow">Check your understanding</p><h3 id="quiz-title">Quick quiz</h3></div>
+              <span class="question-count" id="question-count">Question 1 of 4</span>
+            </div>
+            <fieldset class="quiz-question">
+              <legend id="quiz-question">What can some AI systems learn from examples?</legend>
+              <label class="answer-option"><input type="radio" name="answer-a" value="A"><span class="answer-key">A</span><span data-answer="A">Patterns that help with a task</span></label>
+              <label class="answer-option"><input type="radio" name="answer-a" value="B"><span class="answer-key">B</span><span data-answer="B">Human feelings and life experiences</span></label>
+              <label class="answer-option"><input type="radio" name="answer-a" value="C"><span class="answer-key">C</span><span data-answer="C">Only the appearance of a computer screen</span></label>
+              <label class="answer-option"><input type="radio" name="answer-a" value="D"><span class="answer-key">D</span><span data-answer="D">Nothing; examples are never useful</span></label>
+            </fieldset>
+            <div class="quiz-actions">
+              <button class="button-primary" id="check-answer" type="button">Check answer</button>
+              <p class="quiz-hint" id="quiz-feedback" role="status" aria-live="polite">Choose one answer to check your understanding.</p>
+            </div>
+          </section>
+
+          <nav class="lesson-pager" aria-label="Lesson navigation">
+            <button class="button-secondary" id="previous-lesson" type="button">← Previous lesson</button>
+            <button class="button-primary" id="next-lesson" type="button">Next lesson →</button>
+          </nav>
+        </article>
+      </div>
+    </main>
+    <footer><span>AI Study Lab</span><a href="index.html">Back to prototype comparison</a></footer>
+    <div class="mentor-widget">
+      <aside class="mentor-panel" id="mentor-panel" role="region" aria-labelledby="mentor-title" hidden>
+        <div class="mentor-panel-heading">
+          <p class="mentor-kicker">A small hint</p>
+          <button class="mentor-close" id="mentor-close" type="button" aria-label="Close AI Mentor hint">Close</button>
+        </div>
+        <h2 id="mentor-title">Need a hint?</h2>
+        <p>Think about which pattern the example is showing. I can help you reason it through; I guide, I do not give the final answer.</p>
+        <p class="mentor-prototype-note">Prototype guidance · no AI connection</p>
+      </aside>
+      <button class="mentor-orb" id="mentor-orb" type="button" aria-label="Open AI Mentor hint" aria-controls="mentor-panel" aria-expanded="false">
+        <span class="mentor-orb-core" aria-hidden="true"><span></span></span>
+      </button>
+    </div>
+  </body>
+</html>

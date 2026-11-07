@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Compare two isolated AI Study Lab course navigation prototypes.">
+    <title>AI Study Lab — Course Navigation Prototypes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Newsreader:opsz,wght@6..72,600&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="prototype.css">
+  </head>
+  <body class="comparison-page">
+    <header class="site-header">
+      <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">A</span><span>AI Study Lab</span></a>
+      <span class="prototype-label">Isolated design exploration</span>
+    </header>
+    <main class="comparison-main">
+      <p class="eyebrow">Course navigation studies</p>
+      <h1>Two ways to <em>stay oriented.</em></h1>
+      <p class="intro">Both concepts keep the current ASL colors, typography, and calm spacing. They differ in how much course structure stays visible while you read.</p>
+
+      <div class="comparison-grid">
+        <article class="comparison-option">
+          <p class="option-number">Prototype A</p>
+          <h2>Persistent course sidebar</h2>
+          <p>The path outline, module groups, completion marks, and current lesson remain beside the reading area on wider screens. On mobile, the outline becomes a collapsible Course Content drawer.</p>
+          <a class="button-link" href="prototype-a.html">Open Prototype A <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="comparison-option">
+          <p class="option-number">Prototype B</p>
+          <h2>Collapsible course navigation</h2>
+          <p>The lesson gets more horizontal room. Course structure sits in a disclosure panel that learners open when they need to check their position or choose another lesson.</p>
+          <a class="button-link" href="prototype-b.html">Open Prototype B <span aria-hidden="true">→</span></a>
+        </article>
+      </div>
+
+      <section class="inspection-note" aria-labelledby="inspection-title">
+        <h2 id="inspection-title">Inspect the responsive layouts</h2>
+        <p>Open either prototype, then resize the browser window to approximately <strong>1440px</strong>, <strong>1024px</strong>, and <strong>390px</strong>. Both pages use responsive CSS and can be opened directly without FastAPI.</p>
+        <p>At 1440px, compare the persistent outline with the wider reading area. At 1024px, check whether both columns remain comfortable. At 390px, check the course-content disclosure, lesson text, answer choices, and navigation controls.</p>
+      </section>
+    </main>
+    <footer><span>AI Study Lab</span><span>Prototype only — not connected to the application.</span></footer>
+  </body>
+</html>

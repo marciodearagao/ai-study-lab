@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Prototype B: collapsible course navigation for AI Study Lab.">
+    <title>Prototype B — Collapsible Course Navigation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Newsreader:opsz,wght@6..72,600&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="prototype.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">A</span><span>AI Study Lab</span></a>
+      <nav aria-label="Primary navigation">
+        <a class="nav-link" href="#study">Study</a>
+        <a class="nav-link active" href="#course">Official Learning Paths</a>
+        <a class="nav-link" href="#coach">Interview Coach</a>
+      </nav>
+    </header>
+
+    <main class="course-page wide-page">
+      <div class="wide-course-heading">
+        <div>
+          <p class="eyebrow">AI Fundamentals <span aria-hidden="true">/</span> Introduction <span aria-hidden="true">/</span> Lesson 2 of 6</p>
+          <p class="completion-note"><span class="completion-dot" aria-hidden="true"></span> In progress <span class="context-divider" aria-hidden="true">·</span> 1 of 6 lessons completed</p>
+        </div>
+        <progress class="compact-progress" max="6" value="1" aria-label="Course completion: 1 of 6 lessons"></progress>
+      </div>
+
+      <details class="course-disclosure collapsible-course-nav">
+        <summary><span>Course Content</span><span class="disclosure-context">AI Fundamentals · 1 of 6 lessons completed</span></summary>
+        <div class="course-panel-content">
+          <details class="module-group" open>
+            <summary><span>1. Introduction</span><span class="module-count">3 lessons</span></summary>
+            <ul class="lesson-list">
+              <li><a class="lesson-link completed" href="#lesson"><span class="lesson-marker" aria-hidden="true">✓</span><span>Welcome to the course</span></a></li>
+              <li><a class="lesson-link current" href="#lesson" aria-current="page"><span class="lesson-marker" aria-hidden="true">●</span><span>What Is Artificial Intelligence?</span></a></li>
+              <li><a class="lesson-link" href="#lesson"><span class="lesson-marker" aria-hidden="true">○</span><span>AI Around Us</span></a></li>
+            </ul>
+          </details>
+          <details class="module-group">
+            <summary><span>2. How AI Learns</span><span class="module-count">3 lessons</span></summary>
+            <ul class="lesson-list">
+              <li><a class="lesson-link" href="#lesson"><span class="lesson-marker" aria-hidden="true">○</span><span>Learning from Examples</span></a></li>
+              <li><a class="lesson-link" href="#lesson"><span class="lesson-marker" aria-hidden="true">○</span><span>Patterns and Predictions</span></a></li>
+              <li><a class="lesson-link" href="#lesson"><span class="lesson-marker" aria-hidden="true">○</span><span>What AI Can Get Wrong</span></a></li>
+            </ul>
+          </details>
+        </div>
+      </details>
+
+      <article class="lesson-column wide-reading" id="lesson">
+        <h1>What Is Artificial Intelligence?</h1>
+        <div class="lesson-copy">
+          <p>Artificial intelligence, or AI, is software designed to do tasks that usually need some human intelligence. These tasks can include understanding words, recognizing pictures, making suggestions, or finding patterns in information.</p>
+          <h2>Learning from examples</h2>
+          <p>Some AI systems learn patterns from examples. After seeing many labeled pictures of cats and dogs, for example, a system can learn to sort new pictures. It uses patterns in the examples; it does not learn exactly like a person.</p>
+          <p>AI is useful in voice assistants, translation apps, and recommendation systems. It can also make mistakes, so people should check important results.</p>
+        </div>
+
+        <section class="quiz-section" aria-labelledby="quiz-title">
+          <div class="quiz-heading">
+            <div><p class="eyebrow">Check your understanding</p><h2 id="quiz-title">Quick quiz</h2></div>
+            <span class="question-count">Question 1 of 4</span>
+          </div>
+          <fieldset class="quiz-question">
+            <legend>What can some AI systems learn from examples?</legend>
+            <label class="answer-option"><input type="radio" name="answer-b"><span class="answer-key">A</span><span>Patterns that help with a task</span></label>
+            <label class="answer-option"><input type="radio" name="answer-b"><span class="answer-key">B</span><span>Human feelings and life experiences</span></label>
+            <label class="answer-option"><input type="radio" name="answer-b"><span class="answer-key">C</span><span>Only the appearance of a computer screen</span></label>
+            <label class="answer-option"><input type="radio" name="answer-b"><span class="answer-key">D</span><span>Nothing; examples are never useful</span></label>
+          </fieldset>
+          <div class="quiz-actions"><button class="button-primary" type="button">Check answer</button><span class="quiz-hint">Choose one answer to continue.</span></div>
+        </section>
+
+        <nav class="lesson-pager" aria-label="Lesson navigation">
+          <a class="button-secondary" href="#lesson">← Previous lesson</a>
+          <a class="button-primary" href="#lesson">Next lesson →</a>
+        </nav>
+      </article>
+    </main>
+    <footer><span>AI Study Lab</span><a href="index.html">Back to prototype comparison</a></footer>
+  </body>
+</html>
