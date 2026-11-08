@@ -429,7 +429,17 @@ const officialPathList = document.querySelector("#official-path-list");
 const officialPathDetail = document.querySelector("#official-path-detail");
 const officialPathDetailTitle = document.querySelector("#official-path-detail-title");
 const officialPathContent = document.querySelector("#official-path-content");
+const officialLessonBreadcrumbContainer = document.querySelector("#official-lesson-breadcrumb-container");
 const officialPathRetry = document.querySelector("#official-paths-retry");
+const officialPathsWorkspace = document.querySelector("#official-learning-paths");
+const officialPathLayout = document.querySelector(".official-path-layout");
+const officialCourseSidebar = document.querySelector("#official-course-sidebar");
+const officialCourseTitle = document.querySelector("#official-course-title");
+const officialCourseProgressLabel = document.querySelector("#official-course-progress-label");
+const officialCourseProgressBar = document.querySelector("#official-course-progress-bar");
+const officialCourseProgressPercent = document.querySelector("#official-course-progress-percent");
+const officialCourseOutline = document.querySelector("#official-course-outline");
+const officialPathsBack = document.querySelector("#official-paths-back");
 const dashboardWorkspace = document.querySelector("#home");
 const dashboardStatus = document.querySelector("#dashboard-status");
 const dashboardRetry = document.querySelector("#dashboard-retry");
@@ -444,10 +454,21 @@ const dashboardPathList = document.querySelector("#dashboard-path-list");
 const dashboardActivityList = document.querySelector("#dashboard-activity-list");
 let officialPathsLoaded = false;
 let officialPathsLoading = false;
+let officialPathsLoadPromise = null;
+let officialAvailablePaths = [];
 let officialQuizState = null;
 let officialLessonRequestId = 0;
 let officialSelectedPathId = null;
 let officialPathRequestId = 0;
+let officialPathProgressRequestId = 0;
+let officialPathProgressControllers = [];
+let officialSelectedPath = null;
+let officialLessonCompletion = new Map();
+let officialLessonProgressVersions = new Map();
+let officialActiveLessonId = null;
+let officialResumeRequestId = 0;
+let officialResumeSuppressed = false;
+let officialResumeController = null;
 let dashboardSummary = null;
 let dashboardRequestId = 0;
 let dashboardController = null;
@@ -662,7 +683,7 @@ function resetOfficialQuizProgress() {
 function renderOfficialQuizQuestion() {
   const state = officialQuizState;
   const question = state.questions[state.questionIndex];
-  state.counter.textContent = `Question ${state.questionIndex + 1} / ${state.questions.length}`;
+  state.counter.textContent = `Question ${state.questionIndex + 1} of ${state.questions.length}`;
   state.question.textContent = question.question;
   state.feedback.hidden = true;
   state.next.hidden = true;
@@ -672,7 +693,13 @@ function renderOfficialQuizQuestion() {
       const option = document.createElement("button");
       option.type = "button";
       option.setAttribute("aria-pressed", "false");
-      option.textContent = `${key}. ${question.options[key]}`;
+      const optionKey = document.createElement("span");
+      optionKey.className = "official-quiz-option-key";
+      optionKey.textContent = key;
+      const optionText = document.createElement("span");
+      optionText.className = "official-quiz-option-text";
+      optionText.textContent = question.options[key];
+      option.append(optionKey, optionText);
       option.addEventListener("click", () => {
         if (state.submitted) {
           return;
@@ -767,6 +794,8 @@ async function saveOfficialQuizAttempt(state) {
     state.saveStatus.textContent = "Result saved successfully. Lesson completed.";
     state.progressStatus.textContent = "Lesson completed.";
     state.progressStatus.dataset.completed = "true";
+    officialLessonCompletion.set(state.lessonId, true);
+    updateOfficialLessonIndicators();
   } catch (_error) {
     if (officialQuizState !== state || state.lessonRequestId !== officialLessonRequestId) {
       return;
@@ -972,67 +1001,331 @@ function renderLessonMarkdown(markdown) {
   return fragment;
 }
 
+function stripDuplicateLeadingLessonHeading(markdown, lessonTitle) {
+  const match = markdown.match(/^\s*#\s+([^\r\n]+)\s*(?:\r?\n|$)/);
+  if (!match) {
+    return markdown;
+  }
+  const normalize = (value) => value.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+  return normalize(match[1]) === normalize(lessonTitle)
+    ? markdown.slice(match[0].length)
+    : markdown;
+}
+
+function getOrderedOfficialLessons(path) {
+  const modules = Array.isArray(path?.modules) ? path.modules : [];
+  return modules.flatMap((module) => (
+    Array.isArray(module.lessons)
+      ? module.lessons.map((lesson) => ({ module, lesson }))
+      : []
+  ));
+}
+
+function getOfficialResumeCandidates(paths, lastAccessedLesson) {
+  const availablePaths = Array.isArray(paths) ? paths : [];
+  const recentPath = availablePaths.find((path) => (
+    path.id === lastAccessedLesson?.learning_path_id
+  ));
+  return recentPath
+    ? [recentPath, ...availablePaths.filter((path) => path.id !== recentPath.id)]
+    : availablePaths;
+}
+
+function getOfficialResumeLesson(path, lastAccessedLessonId = null) {
+  const lessons = getOrderedOfficialLessons(path);
+  return lessons.find((entry) => entry.lesson.id === lastAccessedLessonId) || lessons[0] || null;
+}
+
+function getOfficialLessonNeighbors(path, module, lesson) {
+  const orderedLessons = getOrderedOfficialLessons(path);
+  const currentIndex = orderedLessons.findIndex((entry) => (
+    entry.module.id === module.id && entry.lesson.id === lesson.id
+  ));
+  if (currentIndex < 0) {
+    return { previous: null, next: null };
+  }
+  return {
+    previous: currentIndex > 0 ? orderedLessons[currentIndex - 1] : null,
+    next: currentIndex < orderedLessons.length - 1 ? orderedLessons[currentIndex + 1] : null,
+  };
+}
+
+function renderOfficialLessonNavigation(path, module, lesson) {
+  const neighbors = getOfficialLessonNeighbors(path, module, lesson);
+  const navigation = document.createElement("nav");
+  navigation.className = "official-lesson-navigation";
+  navigation.setAttribute("aria-label", "Lesson navigation");
+
+  const previous = document.createElement("button");
+  previous.type = "button";
+  previous.className = "official-lesson-previous";
+  previous.textContent = "← Previous lesson";
+  previous.disabled = !neighbors.previous;
+  previous.setAttribute(
+    "aria-label",
+    neighbors.previous ? `Previous lesson: ${neighbors.previous.lesson.title}` : "No previous lesson",
+  );
+  if (neighbors.previous) {
+    previous.addEventListener("click", () => renderOfficialLesson(
+      path,
+      neighbors.previous.module,
+      neighbors.previous.lesson,
+    ));
+  }
+
+  const next = document.createElement("button");
+  next.type = "button";
+  next.className = "official-lesson-next";
+  next.textContent = "Next lesson →";
+  next.disabled = !neighbors.next;
+  next.setAttribute(
+    "aria-label",
+    neighbors.next ? `Next lesson: ${neighbors.next.lesson.title}` : "No next lesson",
+  );
+  if (neighbors.next) {
+    next.addEventListener("click", () => renderOfficialLesson(
+      path,
+      neighbors.next.module,
+      neighbors.next.lesson,
+    ));
+  }
+
+  navigation.append(previous, next);
+  return navigation;
+}
+
 function renderOfficialModule(path, module) {
-  officialQuizState = null;
-  officialLessonRequestId += 1;
-  officialPathContent.replaceChildren();
-  const back = document.createElement("button");
-  back.type = "button";
-  back.className = "official-path-back";
-  back.textContent = "← Back to modules";
-  back.addEventListener("click", () => showOfficialPathModules(path));
-  const heading = document.createElement("h4");
+  const group = document.createElement("details");
+  group.className = "official-course-module";
+  const heading = document.createElement("summary");
   heading.textContent = module.title;
   const lessons = document.createElement("ul");
+  lessons.className = "official-course-lessons";
   module.lessons.forEach((lessonItem) => {
     const item = document.createElement("li");
     const button = document.createElement("button");
     button.type = "button";
     button.className = "official-path-lesson";
-    button.textContent = lessonItem.title;
+    button.dataset.lessonId = lessonItem.id;
+    button.setAttribute("aria-current", "false");
+    const title = document.createElement("span");
+    title.className = "official-course-lesson-title";
+    title.textContent = lessonItem.title;
+    const completion = document.createElement("span");
+    completion.className = "official-course-lesson-status";
+    button.append(title, completion);
     button.addEventListener("click", () => renderOfficialLesson(path, module, lessonItem));
     item.append(button);
     lessons.append(item);
   });
-  officialPathContent.append(back, heading, lessons);
+  group.append(heading, lessons);
+  return group;
+}
+
+function renderOfficialPathOutline(path) {
+  officialCourseOutline.replaceChildren();
+  if (path.modules.length === 0) {
+    const empty = document.createElement("p");
+    empty.textContent = "Modules are not available yet.";
+    officialCourseOutline.append(empty);
+    return;
+  }
+  path.modules.forEach((module) => {
+    const group = renderOfficialModule(path, module);
+    officialCourseOutline.append(group);
+  });
+}
+
+function updateOfficialPathProgress() {
+  const lessons = officialSelectedPath?.modules.flatMap((module) => module.lessons) || [];
+  if (lessons.length === 0) {
+    officialCourseProgressLabel.textContent = "No lessons in this learning path yet.";
+    officialCourseProgressBar.hidden = true;
+    officialCourseProgressPercent.hidden = true;
+    return;
+  }
+  const completedCount = lessons.filter((lesson) => officialLessonCompletion.get(lesson.id) === true).length;
+  const unknownCount = lessons.filter((lesson) => !officialLessonCompletion.has(lesson.id)).length;
+  if (unknownCount > 0) {
+    officialCourseProgressLabel.textContent = "Loading lesson progress...";
+    officialCourseProgressBar.hidden = true;
+    officialCourseProgressPercent.hidden = true;
+    return;
+  }
+  const unavailableCount = lessons.filter((lesson) => officialLessonCompletion.get(lesson.id) === null).length;
+  if (unavailableCount > 0) {
+    officialCourseProgressLabel.textContent = "Some lesson progress could not be loaded.";
+    officialCourseProgressBar.hidden = true;
+    officialCourseProgressPercent.hidden = true;
+    return;
+  }
+  officialCourseProgressLabel.textContent = `${completedCount} of ${lessons.length} lessons completed`;
+  const completionPercent = Math.round((completedCount / lessons.length) * 100);
+  officialCourseProgressBar.value = completionPercent;
+  officialCourseProgressBar.hidden = false;
+  officialCourseProgressPercent.textContent = `${completionPercent}%`;
+  officialCourseProgressPercent.hidden = false;
+}
+
+function updateOfficialLessonIndicators() {
+  officialCourseOutline.querySelectorAll(".official-path-lesson").forEach((button) => {
+    const lessonId = button.dataset.lessonId;
+    const completion = button.querySelector(".official-course-lesson-status");
+    const isActive = lessonId === officialActiveLessonId;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-current", String(isActive));
+    if (officialLessonCompletion.get(lessonId) === true) {
+      completion.textContent = "Completed";
+      completion.setAttribute("aria-label", "Lesson completed");
+    } else if (officialLessonCompletion.get(lessonId) === false) {
+      completion.textContent = "Not completed";
+      completion.setAttribute("aria-label", "Lesson not completed");
+    } else if (officialLessonCompletion.get(lessonId) === null) {
+      completion.textContent = "Progress unavailable";
+      completion.setAttribute("aria-label", "Lesson progress unavailable");
+    } else {
+      completion.textContent = "Checking";
+      completion.setAttribute("aria-label", "Checking lesson progress");
+    }
+  });
+  updateOfficialPathProgress();
+}
+
+async function loadOfficialPathProgress(path, requestId) {
+  officialPathProgressControllers.forEach((controller) => controller.abort());
+  officialPathProgressControllers = [];
+  officialLessonCompletion = new Map();
+  officialCourseOutline.setAttribute("aria-busy", "true");
+  updateOfficialLessonIndicators();
+  const lessons = path.modules.flatMap((module) => module.lessons);
+  await Promise.all(lessons.map(async (lesson) => {
+    const version = (officialLessonProgressVersions.get(lesson.id) || 0) + 1;
+    officialLessonProgressVersions.set(lesson.id, version);
+    const controller = new AbortController();
+    officialPathProgressControllers.push(controller);
+    let timeoutId;
+    try {
+      timeoutId = window.setTimeout(() => controller.abort(), 10000);
+      const response = await fetch(
+        `/api/progress/lessons/${encodeURIComponent(lesson.id)}`,
+        { signal: controller.signal },
+      );
+      if (!response.ok) {
+        throw new Error("Lesson progress could not be loaded.");
+      }
+      const progress = await response.json();
+      if (requestId !== officialPathProgressRequestId
+        || officialSelectedPath?.id !== path.id
+        || officialLessonProgressVersions.get(lesson.id) !== version) {
+        return;
+      }
+      officialLessonCompletion.set(lesson.id, Boolean(progress.completed));
+    } catch (_error) {
+      if (requestId !== officialPathProgressRequestId
+        || officialSelectedPath?.id !== path.id
+        || officialLessonProgressVersions.get(lesson.id) !== version) {
+        return;
+      }
+      officialLessonCompletion.set(lesson.id, null);
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+    if (requestId === officialPathProgressRequestId
+      && officialSelectedPath?.id === path.id
+      && officialLessonProgressVersions.get(lesson.id) === version) {
+      updateOfficialLessonIndicators();
+    }
+  }));
+  if (requestId === officialPathProgressRequestId && officialSelectedPath?.id === path.id) {
+    officialCourseOutline.setAttribute("aria-busy", "false");
+  }
 }
 
 function showOfficialPathModules(path) {
   officialQuizState = null;
   officialLessonRequestId += 1;
-  officialPathContent.replaceChildren();
-  const heading = document.createElement("h4");
-  heading.textContent = "Modules";
-  if (path.modules.length === 0) {
-    const empty = document.createElement("p");
-    empty.textContent = "Modules are not available yet.";
-    officialPathContent.append(heading, empty);
-    return;
-  }
-  const modules = document.createElement("ul");
-  path.modules.forEach((module) => {
-    const item = document.createElement("li");
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "official-path-module";
-    button.textContent = module.title;
-    button.addEventListener("click", () => renderOfficialModule(path, module));
-    item.append(button);
-    modules.append(item);
-  });
-  officialPathContent.append(heading, modules);
+  officialActiveLessonId = null;
+  officialLessonProgressVersions = new Map();
+  officialSelectedPath = path;
+  officialPathsWorkspace.classList.remove("is-reading");
+  officialLessonBreadcrumbContainer.replaceChildren();
+  officialLessonBreadcrumbContainer.hidden = true;
+  officialCourseSidebar.hidden = false;
+  officialPathList.hidden = true;
+  officialPathStatus.hidden = true;
+  officialPathRetry.hidden = true;
+  officialCourseTitle.textContent = path.title;
+  officialCourseOutline.setAttribute("aria-busy", "false");
+  renderOfficialPathOutline(path);
+  officialPathLayout?.classList.add("has-selected-path");
+  officialPathDetailTitle.textContent = path.title;
+  officialPathDetailTitle.hidden = false;
+  officialPathDetail.hidden = false;
+  officialPathDetail.classList.remove("is-reading");
+  const prompt = document.createElement("p");
+  prompt.className = "official-course-prompt";
+  const hasLessons = path.modules.some((module) => module.lessons.length > 0);
+  prompt.textContent = hasLessons
+    ? "Choose a lesson from the course content to begin."
+    : "Lessons are not available in this learning path yet.";
+  officialPathContent.replaceChildren(prompt);
+  const progressRequestId = ++officialPathProgressRequestId;
+  loadOfficialPathProgress(path, progressRequestId);
 }
 
+function returnToOfficialPathList() {
+  cancelOfficialLessonResume();
+  officialPathRequestId += 1;
+  officialPathProgressRequestId += 1;
+  officialLessonRequestId += 1;
+  officialPathProgressControllers.forEach((controller) => controller.abort());
+  officialPathProgressControllers = [];
+  officialQuizState = null;
+  officialSelectedPath = null;
+  officialSelectedPathId = null;
+  officialLessonCompletion = new Map();
+  officialLessonProgressVersions = new Map();
+  officialActiveLessonId = null;
+  officialPathLayout?.classList.remove("has-selected-path");
+  officialPathsWorkspace.classList.remove("is-reading");
+  officialLessonBreadcrumbContainer.replaceChildren();
+  officialLessonBreadcrumbContainer.hidden = true;
+  officialCourseSidebar.hidden = true;
+  officialPathList.hidden = false;
+  officialPathStatus.hidden = false;
+  officialPathDetail.hidden = true;
+  officialPathDetail.classList.remove("is-reading");
+  officialPathContent.replaceChildren();
+  officialPathDetailTitle.hidden = false;
+  officialPathList.querySelectorAll(".official-path-choice").forEach((button) => {
+    button.setAttribute("aria-pressed", "false");
+  });
+}
+
+officialPathsBack.addEventListener("click", returnToOfficialPathList);
+
 function renderOfficialLesson(path, module, lessonItem) {
+  cancelOfficialLessonResume();
   officialQuizState = null;
   officialLessonRequestId += 1;
   const requestId = officialLessonRequestId;
+  officialActiveLessonId = lessonItem.id;
+  officialPathsWorkspace.classList.add("is-reading");
+  officialPathDetailTitle.hidden = true;
   officialPathContent.replaceChildren();
-  const back = document.createElement("button");
-  back.type = "button";
-  back.className = "official-path-back";
-  back.textContent = `← Back to ${module.title}`;
-  back.addEventListener("click", () => renderOfficialModule(path, module));
+  const breadcrumb = document.createElement("nav");
+  breadcrumb.className = "official-lesson-breadcrumb";
+  breadcrumb.setAttribute("aria-label", "Lesson location");
+  const pathName = document.createElement("span");
+  pathName.textContent = path.title;
+  const moduleName = document.createElement("span");
+  moduleName.textContent = module.title;
+  const lessonName = document.createElement("span");
+  lessonName.setAttribute("aria-current", "page");
+  lessonName.textContent = lessonItem.title;
+  breadcrumb.append(pathName, moduleName, lessonName);
+  officialLessonBreadcrumbContainer.replaceChildren(breadcrumb);
+  officialLessonBreadcrumbContainer.hidden = false;
   const heading = document.createElement("h4");
   heading.textContent = lessonItem.title;
   const progressStatus = document.createElement("p");
@@ -1042,7 +1335,9 @@ function renderOfficialLesson(path, module, lessonItem) {
   progressStatus.textContent = "Checking lesson progress...";
   const explanation = document.createElement("article");
   explanation.className = "official-lesson-markdown";
-  const markdown = typeof lessonItem.explanation === "string" ? lessonItem.explanation : "";
+  const markdown = typeof lessonItem.explanation === "string"
+    ? stripDuplicateLeadingLessonHeading(lessonItem.explanation, lessonItem.title)
+    : "";
   if (markdown.trim()) {
     explanation.append(renderLessonMarkdown(markdown));
   } else {
@@ -1056,11 +1351,28 @@ function renderOfficialLesson(path, module, lessonItem) {
     officialQuizState.lessonRequestId = requestId;
     officialQuizState.progressStatus = progressStatus;
   }
-  officialPathContent.append(back, heading, progressStatus, explanation, quiz);
+  const lessonNavigation = renderOfficialLessonNavigation(path, module, lessonItem);
+  officialPathContent.append(
+    progressStatus,
+    heading,
+    explanation,
+    quiz,
+    lessonNavigation,
+  );
+  officialPathDetail.classList.add("is-reading");
+  const activeModule = [...officialCourseOutline.querySelectorAll(".official-course-module")]
+    .find((group) => [...group.querySelectorAll(".official-path-lesson")]
+      .some((button) => button.dataset.lessonId === lessonItem.id));
+  if (activeModule) {
+    activeModule.open = true;
+  }
+  updateOfficialLessonIndicators();
   loadOfficialLessonProgress(lessonItem.id, progressStatus, requestId);
 }
 
 async function loadOfficialLessonProgress(lessonId, statusElement, requestId) {
+  const progressVersion = (officialLessonProgressVersions.get(lessonId) || 0) + 1;
+  officialLessonProgressVersions.set(lessonId, progressVersion);
   const accessController = new AbortController();
   let accessTimeoutId;
   const accessRequest = (async () => {
@@ -1098,14 +1410,18 @@ async function loadOfficialLessonProgress(lessonId, statusElement, requestId) {
     accessRequest,
     progressRequest,
   ]);
-  if (requestId !== officialLessonRequestId || !statusElement.isConnected) {
+  if (requestId !== officialLessonRequestId
+    || !statusElement.isConnected
+    || officialLessonProgressVersions.get(lessonId) !== progressVersion) {
     return;
   }
   if (statusElement.dataset.completed === "true") {
     return;
   }
   if (progressResult.status === "fulfilled") {
-    statusElement.dataset.completed = String(Boolean(progressResult.value.completed));
+    const isCompleted = Boolean(progressResult.value.completed);
+    officialLessonCompletion.set(lessonId, isCompleted);
+    statusElement.dataset.completed = String(isCompleted);
     statusElement.textContent = progressResult.value.completed
       ? "Lesson completed previously."
       : "Lesson not completed yet.";
@@ -1113,16 +1429,48 @@ async function loadOfficialLessonProgress(lessonId, statusElement, requestId) {
       statusElement.textContent += " Lesson access could not be recorded.";
     }
   } else {
+    if (!officialLessonCompletion.has(lessonId)) {
+      officialLessonCompletion.set(lessonId, null);
+    }
     statusElement.textContent = accessResult.status === "rejected"
       ? "Lesson progress could not be loaded or access recorded."
       : "Lesson progress could not be loaded.";
   }
+  updateOfficialLessonIndicators();
 }
 
-async function selectOfficialPath(path, selectedButton, targetLessonId = null) {
+function cancelOfficialLessonResume() {
+  officialResumeRequestId += 1;
+  officialResumeSuppressed = true;
+  if (officialResumeController) {
+    officialResumeController.abort();
+    officialResumeController = null;
+  }
+}
+
+function isOfficialResumeCurrent(requestId) {
+  return requestId === officialResumeRequestId
+    && !officialResumeSuppressed
+    && !officialPathsWorkspace.hidden;
+}
+
+async function selectOfficialPath(path, selectedButton, targetLessonId = null, resumeRequestId = null) {
+  if (resumeRequestId === null) {
+    cancelOfficialLessonResume();
+  }
   const requestId = ++officialPathRequestId;
+  officialPathProgressRequestId += 1;
+  officialPathProgressControllers.forEach((controller) => controller.abort());
+  officialPathProgressControllers = [];
+  officialPathLayout?.classList.remove("has-selected-path");
+  officialPathsWorkspace.classList.remove("is-reading");
+  officialCourseSidebar.hidden = true;
+  officialPathList.hidden = false;
+  officialPathStatus.hidden = false;
   officialQuizState = null;
   officialLessonRequestId += 1;
+  officialActiveLessonId = null;
+  officialSelectedPath = null;
   officialSelectedPathId = path.id;
   officialPathDetailTitle.textContent = path.title;
   officialPathDetail.hidden = false;
@@ -1148,38 +1496,53 @@ async function selectOfficialPath(path, selectedButton, targetLessonId = null) {
     if (requestId !== officialPathRequestId || officialSelectedPathId !== path.id) {
       return;
     }
+    if (resumeRequestId !== null && !isOfficialResumeCurrent(resumeRequestId)) {
+      return;
+    }
     if (!Array.isArray(detail.modules) || detail.modules.some((module) => (
       !Array.isArray(module.lessons)
     ))) {
       throw new Error("Learning path response is invalid.");
     }
-    if (targetLessonId) {
-      const module = detail.modules.find((item) => (
-        item.lessons.some((lesson) => lesson.id === targetLessonId)
-      ));
-      const lesson = module?.lessons.find((item) => item.id === targetLessonId);
-      if (module && lesson) {
-        renderOfficialLesson(detail, module, lesson);
-        return;
-      }
-    }
     showOfficialPathModules(detail);
+    const resumeEntry = resumeRequestId === null
+      ? null
+      : getOfficialResumeLesson(detail, targetLessonId);
+    const targetModule = targetLessonId
+      ? detail.modules.find((item) => item.lessons.some((lesson) => lesson.id === targetLessonId))
+      : null;
+    const targetLesson = targetModule?.lessons.find((item) => item.id === targetLessonId);
+    const lessonEntry = resumeEntry || (targetModule && targetLesson
+      ? { module: targetModule, lesson: targetLesson }
+      : null);
+    if (lessonEntry) {
+      renderOfficialLesson(detail, lessonEntry.module, lessonEntry.lesson);
+      return { openedLesson: true };
+    }
+    return { openedLesson: false };
   } catch (_error) {
     if (requestId !== officialPathRequestId || officialSelectedPathId !== path.id) {
-      return;
+      return null;
+    }
+    if (resumeRequestId !== null && !isOfficialResumeCurrent(resumeRequestId)) {
+      return null;
     }
     officialPathContent.replaceChildren();
     const error = document.createElement("p");
     error.textContent = "This learning path could not be loaded. Please select it again to retry.";
     officialPathContent.append(error);
+    return null;
   } finally {
     window.clearTimeout(timeoutId);
   }
 }
 
 async function loadOfficialLearningPaths() {
-  if (officialPathsLoaded || officialPathsLoading) {
-    return;
+  if (officialPathsLoaded) {
+    return officialAvailablePaths;
+  }
+  if (officialPathsLoadPromise) {
+    return officialPathsLoadPromise;
   }
   officialPathsLoading = true;
   officialPathStatus.textContent = "Loading official learning paths...";
@@ -1187,73 +1550,147 @@ async function loadOfficialLearningPaths() {
   officialPathDetail.hidden = true;
   officialPathList.replaceChildren();
 
+  officialPathsLoadPromise = (async () => {
+    let timeoutId;
+    try {
+      const controller = new AbortController();
+      timeoutId = window.setTimeout(() => controller.abort(), 10000);
+      const response = await fetch("/api/learning-paths", { signal: controller.signal });
+      if (!response.ok) {
+        throw new Error("Learning paths could not be loaded.");
+      }
+      const paths = await response.json();
+      if (!Array.isArray(paths) || paths.some((path) => (
+        typeof path.id !== "string"
+        || typeof path.title !== "string"
+        || !Array.isArray(path.modules)
+        || path.modules.some((module) => typeof module.title !== "string")
+      ))) {
+        throw new Error("Learning paths response is invalid.");
+      }
+      officialAvailablePaths = paths;
+      if (paths.length === 0) {
+        officialPathStatus.textContent = "No official learning paths are available yet.";
+        officialPathsLoaded = true;
+        return paths;
+      }
+
+      paths.forEach((path) => {
+        const button = document.createElement("button");
+        button.className = "official-path-choice";
+        button.type = "button";
+        button.dataset.pathId = path.id;
+        button.setAttribute("aria-pressed", String(path.id === officialSelectedPathId));
+        button.setAttribute("aria-controls", "official-path-detail");
+
+        const title = document.createElement("span");
+        title.className = "official-path-choice-title";
+        title.textContent = path.title;
+        const moduleSummary = document.createElement("span");
+        moduleSummary.className = "official-path-choice-summary";
+        moduleSummary.textContent = `${path.modules.length} ${path.modules.length === 1 ? "module" : "modules"}`;
+        button.append(title, moduleSummary);
+        button.addEventListener("click", () => selectOfficialPath(path, button));
+        officialPathList.append(button);
+      });
+      officialPathStatus.textContent = `${paths.length} learning ${paths.length === 1 ? "path" : "paths"} available. Select one to view its modules.`;
+      officialPathsLoaded = true;
+      return paths;
+    } catch (_error) {
+      officialPathStatus.textContent = "Learning paths could not be loaded. Please try again.";
+      officialPathRetry.hidden = false;
+      return null;
+    } finally {
+      window.clearTimeout(timeoutId);
+      officialPathsLoading = false;
+      officialPathsLoadPromise = null;
+    }
+  })();
+  return officialPathsLoadPromise;
+}
+
+async function resumeOfficialLearningPath(requestId) {
+  const paths = await loadOfficialLearningPaths();
+  if (!isOfficialResumeCurrent(requestId) || !Array.isArray(paths) || paths.length === 0) {
+    return;
+  }
+
+  let lastAccessedLesson = null;
+  const controller = new AbortController();
+  officialResumeController = controller;
   let timeoutId;
   try {
-    const controller = new AbortController();
     timeoutId = window.setTimeout(() => controller.abort(), 10000);
-    const response = await fetch("/api/learning-paths", { signal: controller.signal });
+    const response = await fetch("/api/dashboard/summary", { signal: controller.signal });
     if (!response.ok) {
-      throw new Error("Learning paths could not be loaded.");
+      throw new Error("Recent lesson could not be loaded.");
     }
-    const paths = await response.json();
-    if (!Array.isArray(paths) || paths.some((path) => (
-      typeof path.id !== "string"
-      || typeof path.title !== "string"
-      || !Array.isArray(path.modules)
-      || path.modules.some((module) => typeof module.title !== "string")
-    ))) {
-      throw new Error("Learning paths response is invalid.");
+    const summary = await response.json();
+    if (isValidDashboardSummary(summary)) {
+      lastAccessedLesson = summary.most_recently_accessed_lesson;
     }
-
-    if (paths.length === 0) {
-      officialPathStatus.textContent = "No official learning paths are available yet.";
-      officialPathsLoaded = true;
-      return;
-    }
-
-    paths.forEach((path) => {
-      const button = document.createElement("button");
-      button.className = "official-path-choice";
-      button.type = "button";
-      button.dataset.pathId = path.id;
-      button.setAttribute("aria-pressed", String(path.id === officialSelectedPathId));
-      button.setAttribute("aria-controls", "official-path-detail");
-
-      const title = document.createElement("span");
-      title.className = "official-path-choice-title";
-      title.textContent = path.title;
-      const moduleSummary = document.createElement("span");
-      moduleSummary.className = "official-path-choice-summary";
-      moduleSummary.textContent = `${path.modules.length} ${path.modules.length === 1 ? "module" : "modules"}`;
-      button.append(title, moduleSummary);
-      button.addEventListener("click", () => selectOfficialPath(path, button));
-      officialPathList.append(button);
-    });
-    officialPathStatus.textContent = `${paths.length} learning ${paths.length === 1 ? "path" : "paths"} available. Select one to view its modules.`;
-    officialPathsLoaded = true;
   } catch (_error) {
-    officialPathStatus.textContent = "Learning paths could not be loaded. Please try again.";
-    officialPathRetry.hidden = false;
+    // Resume with the first available lesson when recent progress is unavailable.
   } finally {
     window.clearTimeout(timeoutId);
-    officialPathsLoading = false;
+    if (officialResumeController === controller) {
+      officialResumeController = null;
+    }
+  }
+
+  if (!isOfficialResumeCurrent(requestId)) {
+    return;
+  }
+  const candidates = getOfficialResumeCandidates(paths, lastAccessedLesson);
+  for (const path of candidates) {
+    if (!isOfficialResumeCurrent(requestId)) {
+      return;
+    }
+    const targetLessonId = path.id === lastAccessedLesson?.learning_path_id
+      ? lastAccessedLesson.id
+      : null;
+    const result = await selectOfficialPath(path, null, targetLessonId, requestId);
+    if (!isOfficialResumeCurrent(requestId)) {
+      return;
+    }
+    if (result?.openedLesson) {
+      return;
+    }
   }
 }
 
+function startOfficialLessonResume() {
+  officialResumeSuppressed = false;
+  const requestId = ++officialResumeRequestId;
+  resumeOfficialLearningPath(requestId);
+}
+
 officialPathRetry.addEventListener("click", () => {
-  loadOfficialLearningPaths();
+  loadOfficialLearningPaths().then((paths) => {
+    if (Array.isArray(paths) && !officialPathsWorkspace.hidden) {
+      startOfficialLessonResume();
+    }
+  });
 });
 
 function showWorkspace(name) {
   const selected = workspaces.find((workspace) => workspace.dataset.workspace === name)
     || document.querySelector('[data-workspace="home"]');
+  const selectedWorkspaceName = selected.dataset.workspace;
+  const enteringOfficialPaths = selectedWorkspaceName === "official-learning-paths"
+    && officialPathsWorkspace.hidden;
 
-  if (selected.dataset.workspace !== "home" && dashboardController) {
+  if (!officialPathsWorkspace.hidden
+    && selectedWorkspaceName !== "official-learning-paths") {
+    cancelOfficialLessonResume();
+  }
+
+  if (selectedWorkspaceName !== "home" && dashboardController) {
     dashboardRequestId += 1;
     dashboardController.abort();
     dashboardController = null;
   }
-  if (selected.dataset.workspace !== "official-learning-paths") {
+  if (selectedWorkspaceName !== "official-learning-paths") {
     resetOfficialQuizProgress();
   }
 
@@ -1261,7 +1698,7 @@ function showWorkspace(name) {
     workspace.hidden = workspace !== selected;
   });
   navigationLinks.forEach((link) => {
-    const isActive = link.getAttribute("href") === `#${selected.dataset.workspace}`;
+    const isActive = link.getAttribute("href") === `#${selectedWorkspaceName}`;
     link.classList.toggle("active", isActive);
     if (isActive) {
       link.setAttribute("aria-current", "page");
@@ -1269,10 +1706,14 @@ function showWorkspace(name) {
       link.removeAttribute("aria-current");
     }
   });
-  if (selected.dataset.workspace === "official-learning-paths") {
-    loadOfficialLearningPaths();
+  if (selectedWorkspaceName === "official-learning-paths") {
+    if (enteringOfficialPaths) {
+      startOfficialLessonResume();
+    } else {
+      loadOfficialLearningPaths();
+    }
   }
-  if (selected.dataset.workspace === "home") {
+  if (selectedWorkspaceName === "home") {
     loadDashboardSummary();
   }
   window.scrollTo(0, 0);

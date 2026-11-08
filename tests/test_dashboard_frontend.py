@@ -88,7 +88,8 @@ def test_continue_learning_routes_to_the_exact_official_lesson():
     assert "lesson.learning_path_id" in continue_flow
     assert "lesson.id" in continue_flow
     assert "selectOfficialPath({ id: pathId, title: pathTitle }, null, lessonId)" in navigation_flow
-    assert "renderOfficialLesson(detail, module, lesson)" in path_selection
+    assert "renderOfficialLesson(detail, lessonEntry.module, lessonEntry.lesson)" in path_selection
+    assert "targetLessonId = null" in path_selection
 
 
 def test_dashboard_path_action_uses_existing_official_path_selection():
@@ -124,9 +125,9 @@ def test_dashboard_refreshes_when_home_is_opened_again():
         "workspaceLinks.forEach", 1
     )[0]
 
-    assert 'selected.dataset.workspace === "home"' in workspace_flow
+    assert 'selectedWorkspaceName === "home"' in workspace_flow
     assert "loadDashboardSummary()" in workspace_flow
-    assert 'selected.dataset.workspace === "official-learning-paths"' in workspace_flow
+    assert 'selectedWorkspaceName === "official-learning-paths"' in workspace_flow
 
 
 def test_stale_dashboard_responses_are_cancelled_or_ignored():
@@ -144,11 +145,43 @@ def test_stale_dashboard_responses_are_cancelled_or_ignored():
     assert "dashboardController.abort()" in workspace_flow
 
 
+def test_primary_navigation_orders_home_before_existing_workspaces():
+    page, script = dashboard_assets()
+    primary_nav = page.split('<nav aria-label="Primary navigation">', 1)[1].split(
+        "</nav>", 1
+    )[0]
+    destinations = (
+        'href="#home" data-workspace-link>Home</a>',
+        'href="#study" data-workspace-link>Study</a>',
+        'href="#official-learning-paths" data-workspace-link>Official Learning Paths</a>',
+        'href="#interview-coach" data-workspace-link>Interview Coach</a>',
+    )
+
+    positions = [primary_nav.index(destination) for destination in destinations]
+    assert positions == sorted(positions)
+    assert 'href="#home" data-workspace-link aria-label="AI Study Lab home"' in page
+    assert 'id="home" data-workspace="home"' in page
+    assert 'showWorkspace(link.getAttribute("href").slice(1))' in script
+    assert 'showWorkspace(window.location.hash.slice(1) || "home")' in script
+
+
+def test_progress_is_not_presented_as_an_unfinished_destination():
+    page, _script = dashboard_assets()
+
+    assert 'href="#progress"' not in page
+    assert 'data-workspace="progress"' not in page
+    assert "Coming later" not in page
+    assert 'id="dashboard-progress-label"' in page
+    assert 'id="dashboard-progress-bar"' in page
+    assert 'id="dashboard-activity-list"' in page
+
+
 def test_existing_workspace_navigation_and_study_features_remain_available():
     page, script = dashboard_assets()
 
-    for workspace in ("study", "official-learning-paths", "interview-coach", "progress"):
+    for workspace in ("home", "study", "official-learning-paths", "interview-coach"):
         assert f'href="#{workspace}" data-workspace-link' in page
+    assert 'href="#progress" data-workspace-link' not in page
     study_flow = script.split("const workspaces =", 1)[0]
     assert "function answerQuizQuestion(selectedButton, selectedAnswer)" in study_flow
     assert 'let endpoint = "/api/lessons"' in study_flow

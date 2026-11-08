@@ -72,7 +72,8 @@ def main() -> int:
     print("[1/3] Checking local address...", flush=True)
     if not is_port_available():
         print(f"\nStartup failed: {HOST}:{PORT} is already in use.")
-        print("Stop the application using that port, then run `python run.py` again.")
+        print("Find the listener with `netstat -ano | grep ':8000'`.")
+        print("Stop that server from its owning terminal, then run `python run.py` again.")
         return 1
 
     print("[2/3] Starting server...", flush=True)

@@ -1,5 +1,8 @@
+import os
+
 from fastapi.testclient import TestClient
 
+from app import main as app_main
 from app.main import app
 
 
@@ -33,10 +36,10 @@ def test_home_page_loads_learning_interface() -> None:
     assert "No LinkedIn PDF selected" in response.text
     assert 'id="cover-letter-pdf"' in response.text
     assert "No Cover Letter PDF selected" in response.text
-    assert "Coming later</span>" in response.text
+    assert 'id="dashboard-progress-bar"' in response.text
     assert 'data-workspace="study"' in response.text
     assert 'data-workspace="interview-coach"' in response.text
-    assert 'data-workspace="progress"' in response.text
+    assert 'data-workspace="progress"' not in response.text
     assert 'data-workspace="home"' in response.text
 
 
@@ -45,6 +48,43 @@ def test_static_assets_are_served() -> None:
 
     assert response.status_code == 200
     assert "--green" in response.text
+
+
+def test_home_asset_urls_follow_static_file_modification_times(monkeypatch, tmp_path) -> None:
+    templates_dir = tmp_path / "templates"
+    static_dir = tmp_path / "static"
+    templates_dir.mkdir()
+    static_dir.mkdir()
+    (templates_dir / "index.html").write_text(
+        '<link href="/static/styles.css?v=__STYLES_VERSION__">'
+        '<script src="/static/app.js?v=__APP_VERSION__"></script>',
+        encoding="utf-8",
+    )
+    css_path = static_dir / "styles.css"
+    js_path = static_dir / "app.js"
+    css_path.write_text("body {}", encoding="utf-8")
+    js_path.write_text("void 0;", encoding="utf-8")
+    monkeypatch.setattr(app_main, "BASE_DIR", tmp_path)
+
+    first_response = client.get("/")
+    first_css_version = str(css_path.stat().st_mtime_ns)
+    first_js_version = str(js_path.stat().st_mtime_ns)
+    assert first_response.headers["cache-control"] == "no-cache"
+    assert f"/static/styles.css?v={first_css_version}" in first_response.text
+    assert f"/static/app.js?v={first_js_version}" in first_response.text
+    assert "__STYLES_VERSION__" not in first_response.text
+    assert "__APP_VERSION__" not in first_response.text
+
+    original_stat = css_path.stat()
+    os.utime(
+        css_path,
+        ns=(original_stat.st_atime_ns, original_stat.st_mtime_ns + 1_000_000_000),
+    )
+    second_response = client.get("/")
+
+    assert f"/static/styles.css?v={css_path.stat().st_mtime_ns}" in second_response.text
+    assert f"/static/styles.css?v={first_css_version}" not in second_response.text
+    assert f"/static/app.js?v={first_js_version}" in second_response.text
 
 
 def test_frontend_resets_hidden_answer_when_cards_change() -> None:

@@ -42,4 +42,7 @@ def test_main_explains_when_port_is_busy(monkeypatch, capsys) -> None:
     monkeypatch.setattr(run, "is_port_available", lambda: False)
 
     assert run.main() == 1
-    assert "127.0.0.1:8000 is already in use" in capsys.readouterr().out
+    output = capsys.readouterr().out
+    assert "127.0.0.1:8000 is already in use" in output
+    assert "netstat -ano | grep ':8000'" in output
+    assert "owning terminal" in output

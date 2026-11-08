@@ -29,7 +29,7 @@ The features below are available on `dev`. Additions after v0.1.0 are part of un
 
 - The Home workspace is a basic dashboard with Continue Learning, Overall Progress, Official Learning Paths, and Recent Activity.
 - SQLite stores local, single-user progress for official lessons: completion, first completion time, last access time, and completed quiz attempts. It does not store educational content or require an account.
-- The progress and dashboard APIs expose lesson status, quiz history, and aggregate progress. The dedicated Progress workspace is a placeholder; persistent progress is available through the dashboard and official lesson views.
+- The progress and dashboard APIs expose lesson status, quiz history, and aggregate progress. Learners can review their progress through the Home Dashboard and Official Learning Paths; there is no separate Progress workspace.
 
 ### Interview Coach
 
@@ -38,7 +38,7 @@ The features below are available on `dev`. Additions after v0.1.0 are part of un
 
 ### Application and developer tools
 
-- Home (Dashboard), Study, Official Learning Paths, Interview Coach, and the Progress placeholder are available workspaces.
+- Home (Dashboard), Study, Official Learning Paths, and Interview Coach are available workspaces.
 - FastAPI provides the web page, health check, learning-path endpoints, progress endpoints, dashboard summary, Study endpoints, and Interview Coach endpoints.
 - Groq is the primary structured-generation provider; Gemini is an optional transparent fallback for eligible failures.
 - Deterministic, live, RAG, and LLM-as-a-judge evaluations are available separately from the learner interface. Live generation and judge commands can call configured AI providers; the pytest suite mocks provider calls.

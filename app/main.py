@@ -43,6 +43,13 @@ from app.telemetry import (
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
+
+def static_asset_version(asset_name: str) -> str:
+    """Return a cache key that changes when a local static asset changes."""
+
+    return str((BASE_DIR / "static" / asset_name).stat().st_mtime_ns)
+
+
 app = FastAPI(title="AI Study Lab", version="0.1.0")
 DATABASE_PATH = DEFAULT_DATABASE_PATH
 app.add_middleware(
@@ -136,7 +143,10 @@ async def extract_uploaded_pdf(upload: UploadFile, document_name: str) -> str:
 
 @app.get("/", response_class=HTMLResponse)
 async def home() -> HTMLResponse:
-    return HTMLResponse((BASE_DIR / "templates" / "index.html").read_text(encoding="utf-8"))
+    page = (BASE_DIR / "templates" / "index.html").read_text(encoding="utf-8")
+    page = page.replace("__STYLES_VERSION__", static_asset_version("styles.css"))
+    page = page.replace("__APP_VERSION__", static_asset_version("app.js"))
+    return HTMLResponse(page, headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/health")

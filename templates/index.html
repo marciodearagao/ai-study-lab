@@ -8,8 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Newsreader:opsz,wght@6..72,600&amp;display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/styles.css">
-  <script src="/static/app.js?v=step4d2-dashboard" defer></script>
+    <link rel="stylesheet" href="/static/styles.css?v=__STYLES_VERSION__">
+  <script src="/static/app.js?v=__APP_VERSION__" defer></script>
   </head>
   <body>
     <header class="site-header">
@@ -18,10 +18,10 @@
         <span>AI Study Lab</span>
       </a>
       <nav aria-label="Primary navigation">
+        <a class="nav-link" href="#home" data-workspace-link>Home</a>
         <a class="nav-link" href="#study" data-workspace-link>Study</a>
         <a class="nav-link" href="#official-learning-paths" data-workspace-link>Official Learning Paths</a>
         <a class="nav-link" href="#interview-coach" data-workspace-link>Interview Coach</a>
-        <a class="nav-link" href="#progress" data-workspace-link>Progress</a>
       </nav>
     </header>
 
@@ -133,14 +133,27 @@
           <p>Explore structured learning created for AI.</p>
         </div>
 
+        <div id="official-lesson-breadcrumb-container" hidden></div>
         <div class="official-path-layout">
           <div class="official-path-browser">
             <p class="official-path-status" id="official-paths-status" role="status" aria-live="polite">Loading official learning paths...</p>
             <button class="official-path-retry" id="official-paths-retry" type="button" hidden>Try again</button>
             <div class="official-path-list" id="official-path-list" aria-label="Available learning paths"></div>
+            <aside class="official-course-sidebar" id="official-course-sidebar" aria-label="Course content" hidden>
+              <p class="official-course-heading">Course Content</p>
+              <button class="official-path-back" id="official-paths-back" type="button">← All learning paths</button>
+              <h3 class="official-course-title" id="official-course-title"></h3>
+              <div class="official-course-progress" id="official-course-progress">
+                <p id="official-course-progress-label" role="status" aria-live="polite">Loading course progress...</p>
+                <div class="official-course-progress-row">
+                  <progress id="official-course-progress-bar" max="100" value="0" aria-label="Learning path completion" hidden></progress>
+                  <span id="official-course-progress-percent" aria-hidden="true" hidden></span>
+                </div>
+              </div>
+              <nav class="official-course-outline" id="official-course-outline" aria-label="Learning path modules and lessons"></nav>
+            </aside>
           </div>
           <section class="official-path-detail" id="official-path-detail" aria-labelledby="official-path-detail-title" aria-live="polite" hidden>
-            <span class="lesson-kicker">Selected learning path</span>
             <h3 id="official-path-detail-title"></h3>
             <div id="official-path-content"></div>
           </section>
@@ -216,14 +229,6 @@
         </section>
       </section>
 
-      <section class="progress-workspace workspace" id="progress" data-workspace="progress" aria-labelledby="progress-title" hidden>
-        <div class="coming-later-panel">
-          <span class="lesson-kicker">Coming later</span>
-          <h1 id="progress-title">Progress</h1>
-          <p>Learning history and progress insights will live here.</p>
-        </div>
-      </section>
-
       <section class="explore workspace workspace-home" id="home" data-workspace="home" aria-labelledby="explore-title">
         <div class="section-heading">
           <div>
@@ -282,11 +287,6 @@
             <span class="card-icon dialogue-icon" aria-hidden="true"></span>
             <div><h3>Interview Coach</h3><p>Practice explaining what you know.</p></div>
             <span class="status available-light">Available</span>
-          </a>
-          <a class="explore-card muted-card" href="#progress" data-workspace-link>
-            <span class="card-icon chart-icon" aria-hidden="true"></span>
-            <div><h3>Progress</h3><p>See how your knowledge grows.</p></div>
-            <span class="status">Coming later</span>
           </a>
         </div>
         </section>
