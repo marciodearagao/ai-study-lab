@@ -50,7 +50,7 @@ def static_asset_version(asset_name: str) -> str:
     return str((BASE_DIR / "static" / asset_name).stat().st_mtime_ns)
 
 
-app = FastAPI(title="AI Study Lab", version="0.1.0")
+app = FastAPI(title="AI Study Lab", version="0.2.0")
 DATABASE_PATH = DEFAULT_DATABASE_PATH
 app.add_middleware(
     TrustedHostMiddleware,

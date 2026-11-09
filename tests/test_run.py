@@ -21,7 +21,7 @@ def test_main_starts_uvicorn_with_local_defaults(monkeypatch, capsys) -> None:
         "port": 8000,
     }
     output = capsys.readouterr().out
-    assert "AI Study Lab 0.1.0" in output
+    assert "AI Study Lab 0.2.0" in output
     assert "[2/3] Starting server" in output
 
 

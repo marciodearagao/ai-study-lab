@@ -1,14 +1,14 @@
 # AI Study Lab
 
-AI Study Lab (ASL) is a local-first, single-user learning application focused on practical AI-assisted study. Version **0.1.0** is the current released version. The `dev` branch contains additional work for **v0.2.0, which is unreleased**; see [CHANGELOG.md](CHANGELOG.md) for the development changes.
+AI Study Lab (ASL) is a local-first, single-user learning application focused on practical AI-assisted study. Version **0.2.0** is prepared on `dev` for release but has not yet been published; **0.1.0** is the latest published release. See [CHANGELOG.md](CHANGELOG.md) for the v0.2.0 release notes.
 
 ## Released in v0.1.0
 
 The v0.1.0 release includes topic-based Study lessons, flashcards and quizzes, and the Interview Coach.
 
-## Features in the current development branch
+## Features prepared for v0.2.0
 
-The features below are available on `dev`. Additions after v0.1.0 are part of unreleased v0.2.0 development.
+The features below are available in the v0.2.0 release candidate. The release has not yet been published.
 
 ### Study
 
@@ -22,6 +22,7 @@ The features below are available on `dev`. Additions after v0.1.0 are part of un
 - The current sample is AI Fundamentals, with an Introduction module and a lesson about artificial intelligence.
 - Lesson explanations are Markdown files. Path, module, lesson metadata, and quiz data are JSON files under `content/`; the current sample quiz has four questions.
 - Lesson quizzes present one question at a time, provide answer feedback, calculate a score, and can be restarted. Official lesson quiz attempts and completion are saved locally in SQLite; unfinished attempts are not saved.
+- The course sidebar shows saved completion progress and supports module and lesson selection. Breadcrumbs, Previous/Next controls, and automatic resumption of the most recently accessed lesson support course navigation.
 - Content is loaded and validated by `app/content.py` and served through `GET /api/learning-paths` and `GET /api/learning-paths/{path_id}`. New content that follows the existing schema can be added as files without changing application code.
 - Lesson access and completion are available through the progress API. The dashboard summary API combines current official content with locally stored progress.
 
@@ -85,6 +86,8 @@ The following items are **not implemented**:
 - My Learning Studio for learner-created study experiences.
 - A contextual AI mentor that offers hints.
 - A hybrid navigation redesign with a collapsible sidebar.
+
+Additional visual refinements relative to Prototype A remain deferred until after v0.2.0; see [UI_UX_PENDING_FIXES.md](UI_UX_PENDING_FIXES.md).
 
 These plans do not change the current file-based Official Learning Paths content or the existing Study, RAG, and Interview Coach features.
 

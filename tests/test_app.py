@@ -153,7 +153,7 @@ def test_health_reports_version() -> None:
     response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "version": "0.1.0"}
+    assert response.json() == {"status": "ok", "version": "0.2.0"}
 
 
 def test_cross_origin_write_is_rejected() -> None:
